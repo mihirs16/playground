@@ -56,3 +56,7 @@ The engine question stays closed the way `01`/`07` left it — this ticket settl
 **⚠️ Open caveat carried on this decision:** verify the final S3 cost (Standard storage + versioning non-current copies + WAL segment history at 30-day retention) fits `01`'s ~£10/mo envelope. Near-certainly pennies at blog scale, but confirm against real numbers when the buckets are configured — flagged in fog, not blocking.
 
 **Ripples:** `09` (API contract) was blocked by `03` and `08` — both now resolved, so it joins the frontier. The write path is fully synchronous (SQLite in-process), so `09` need not model async/slow writes. The media-pipeline fog no longer waits on `08`; it now waits on `blank`/persona rendering needs.
+
+---
+
+**Later refinement (from [`12`](12-derived-data-freshness-and-caching.md)):** point 4's `integration` storage shape is revised from a **single upserted row per source** to an **append-on-change timeseries** (one row per distinct polled state) so future timelines/sparklines are buildable. Each poll compares against the latest row: changed → insert a timestamped row; identical/idle → insert nothing. The store is still the same SQLite DB riding S3 replication; data is kept **indefinitely** (append-on-change keeps it tiny) while the recovery window stays this ticket's **30 days**. Because history is append-only and never edited in place, the "bad write aged out of the 30-day PITR window" risk is a near-non-issue; adds only a rounding-error to the open S3-cost caveat above.

@@ -1,7 +1,7 @@
 # deed: state backend and apply authority
 
 Type: grilling
-Status: open
+Status: resolved
 
 ## Question
 
@@ -25,3 +25,15 @@ Note that `deed` is the one component capable of destroying every other one. App
 ## Blocks
 
 `20` deed multi-project layout
+
+## Answer
+
+- **Tool: Terraform** (not OpenTofu). Chosen for career-alignment — the industry-default HCL toolchain, mirroring `07`'s "career-aligned learning" logic for Go. BUSL doesn't bite at this scale; OpenTofu's drop-in compatibility means the skill transfers if ever wanted.
+- **Backend: S3 with native locking** (`use_lockfile = true`, Terraform 1.10+). State lives in S3 — the rented-durability layer already used by `08`/`11` — and the `.tflock` conditional-write object replaces the legacy DynamoDB lock table (one fewer moving part, same instinct that killed Redis in `08` and CloudWatch in `11`). HCP/hosted backend rejected: reintroduces a SaaS dependency and long-lived-credential surface against `01`.
+- **State never committed to git.** Terraform state is plaintext secrets; committing it to this repo's *clean public history* (`13`) would be the `NEXT_PUBLIC_NOTION_KEY` mistake in a different file. It's also unmergeable JSON and exactly the "if it's gone, it's gone" data `01` says to rent, not self-manage on a mortal box. Local `.tfstate` is `.gitignore`'d; S3 versioning + encryption-at-rest hold the real copy.
+- **Bootstrap: create the state bucket by hand once, then reference it — never manage it.** ~4 CLI commands (mb + versioning + encryption + block-public-access), documented in `deed`'s README, left *outside* Terraform's reach. Explicitly **not** `terraform import`ed: a managed state bucket is a footgun (a botched refactor/destroy could delete the bucket holding its own state). This is the one place clicking beats declaring; the self-management-teaches-you ethos is still satisfied.
+- **Apply authority: laptop-only, under short-lived IAM Identity Center (SSO) creds.** No static IAM access key on disk for the one identity that can destroy everything — the sharpest case of `01`'s "nothing long-lived on disk" principle. **CI never applies** — deed's CI stays capped at `fmt`/`validate`/`plan` per `13`. GitHub OIDC parked as fog for a future gated CI-apply (`13` already flags this).
+- **Blast radius: multiple state files, split by logical component** (e.g. static-site, custodian, shared edge/DNS) — not one monolith. *Exact* boundaries and where the shared CloudFront/Route 53/ACM land are deliberately left to implementation time (not worth pre-deciding). The one invariant kept regardless of layout: **`lifecycle { prevent_destroy = true }` on the data buckets** (SQLite backups + media) so no component `destroy` can silently take unrecoverable data. `20` inherits the principle: state boundary = logical grouping; new projects get their own state(s).
+- **Drift: accepted, personal responsibility.** No scheduled `plan` — that would need standing read-only AWS creds in CI, reintroducing exactly the credential surface Question 4 eliminated, to solve a multi-operator problem a solo playground doesn't have. Drift surfaces for free at the next local `apply`. Scheduled read-only plan parked as fog, riding the same OIDC path if it ever graduates.
+
+**Unblocks `20`.** Hands `20` the principle (state boundary = logical component; shared cross-cutting resources get their own state) and the `prevent_destroy` data-bucket invariant.
