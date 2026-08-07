@@ -11,3 +11,7 @@ The five canonical triage roles, used verbatim as label strings. See `docs/agent
 ### Domain docs
 
 Single-context — one `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
+### Coding conventions
+
+Language-agnostic rules for how code is written here: no history/rejected-decisions in comments, clarity over cleverness. See `docs/agents/coding-conventions.md`.
