@@ -1,0 +1,27 @@
+# Secrets and local env
+.env
+.env.*
+
+# Dependencies and build output
+node_modules/
+dist/
+
+# Go build artifacts and the custodian release binary
+custodian/custodian
+*.test
+*.out
+
+# SQLite databases (local dev / test)
+*.db
+*.db-shm
+*.db-wal
+
+# Terraform state (deed) — never committed
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp

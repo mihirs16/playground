@@ -1,0 +1,667 @@
+openapi: 3.1.0
+info:
+  title: custodian
+  description: >-
+    The API that keeps the playground. A public read surface (`/v1/*`,
+    unauthenticated, GET-only, cacheable) and an admin surface (`/admin/v1/*`,
+    bearer-authenticated, full CRUD). This document is the hand-authored source
+    of truth; server interfaces and consumer clients generate from it.
+  version: 0.1.0
+
+servers:
+  - url: /
+    description: Same-origin; the path prefix selects the surface.
+
+tags:
+  - name: logs
+  - name: profile
+  - name: integrations
+  - name: media
+
+paths:
+  /v1/logs:
+    get:
+      tags: [logs]
+      operationId: listPublicLogs
+      summary: Paginated index of listed logs (bodies omitted).
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Tag'
+      responses:
+        '200':
+          description: A page of log summaries.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogIndex'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/logs/{slug}:
+    get:
+      tags: [logs]
+      operationId: getPublicLog
+      summary: A single log by slug, including its body, in any state.
+      parameters:
+        - $ref: '#/components/parameters/Slug'
+      responses:
+        '200':
+          description: The full log.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Log'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/integrations/{source}:
+    get:
+      tags: [integrations]
+      operationId: getPublicIntegration
+      summary: The latest polled record for a source, with its fetch timestamp.
+      parameters:
+        - $ref: '#/components/parameters/Source'
+      responses:
+        '200':
+          description: The latest integration record (may be empty-but-present).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Integration'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/profile/{key}:
+    get:
+      tags: [profile]
+      operationId: getPublicProfile
+      summary: A profile record by key.
+      parameters:
+        - $ref: '#/components/parameters/ProfileKey'
+      responses:
+        '200':
+          description: The profile record.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /admin/v1/logs:
+    get:
+      tags: [logs]
+      operationId: listAdminLogs
+      summary: Index of logs in any state (drafts included).
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Tag'
+        - $ref: '#/components/parameters/StateFilter'
+      responses:
+        '200':
+          description: A page of log summaries.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogIndex'
+        '401':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+    post:
+      tags: [logs]
+      operationId: createLog
+      summary: Create a log as an unlisted draft.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogCreate'
+      responses:
+        '201':
+          description: The created log.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Log'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /admin/v1/logs/{slug}:
+    patch:
+      tags: [logs]
+      operationId: patchLog
+      summary: Partially update a log (state, slug, body, metadata).
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Slug'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogPatch'
+      responses:
+        '200':
+          description: The updated log (echoes the current slug).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Log'
+        '409':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+    delete:
+      tags: [logs]
+      operationId: deleteLog
+      summary: Delete a log entirely.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Slug'
+      responses:
+        '204':
+          description: Deleted.
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /admin/v1/media:
+    get:
+      tags: [media]
+      operationId: listMedia
+      summary: List and search media records.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A page of media records.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaList'
+        default:
+          $ref: '#/components/responses/Problem'
+    post:
+      tags: [media]
+      operationId: reserveMedia
+      summary: Reserve a media record and return a presigned upload URL.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MediaReserve'
+      responses:
+        '201':
+          description: The reservation, with presigned upload URL and public URL.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaReservation'
+        '409':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /admin/v1/media/{key}:
+    get:
+      tags: [media]
+      operationId: getMedia
+      summary: Fetch a single media record.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MediaKey'
+      responses:
+        '200':
+          description: The media record.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Media'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+    delete:
+      tags: [media]
+      operationId: deleteMedia
+      summary: Delete a media record.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MediaKey'
+      responses:
+        '204':
+          description: Deleted.
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /admin/v1/media/{key}/confirm:
+    post:
+      tags: [media]
+      operationId: confirmMedia
+      summary: Confirm an upload; custodian HEADs S3 before flipping to available.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MediaKey'
+      responses:
+        '200':
+          description: The now-available media record.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Media'
+        '409':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /admin/v1/profile/{key}:
+    put:
+      tags: [profile]
+      operationId: putProfile
+      summary: Upsert a profile record with an opaque JSON body (not validated).
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ProfileKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileBody'
+      responses:
+        '200':
+          description: The upserted profile record.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /admin/v1/integrations/{source}/refresh:
+    post:
+      tags: [integrations]
+      operationId: refreshIntegration
+      summary: Force an immediate poll of a source and return the fresh record.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Source'
+      responses:
+        '200':
+          description: The freshly polled integration record.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Integration'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /admin/v1/integrations/{source}/credential:
+    put:
+      tags: [integrations]
+      operationId: putIntegrationCredential
+      summary: Write a third-party credential; takes effect on the next poll.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Source'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntegrationCredential'
+      responses:
+        '204':
+          description: Stored.
+        default:
+          $ref: '#/components/responses/Problem'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
+  parameters:
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Offset:
+      name: offset
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    Tag:
+      name: tag
+      in: query
+      required: false
+      schema:
+        type: string
+    StateFilter:
+      name: state
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/LogState'
+    Slug:
+      name: slug
+      in: path
+      required: true
+      schema:
+        type: string
+    Source:
+      name: source
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/IntegrationSource'
+    ProfileKey:
+      name: key
+      in: path
+      required: true
+      schema:
+        type: string
+    MediaKey:
+      name: key
+      in: path
+      required: true
+      schema:
+        type: string
+
+  responses:
+    Problem:
+      description: An RFC 9457 problem document.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    LogState:
+      type: string
+      enum: [listed, unlisted]
+
+    IntegrationSource:
+      type: string
+      enum: [steam, github]
+
+    Problem:
+      type: object
+      required: [title, status, code]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        code:
+          type: string
+          description: Stable machine-readable error code.
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldError'
+
+    FieldError:
+      type: object
+      required: [field, message]
+      properties:
+        field:
+          type: string
+        message:
+          type: string
+
+    LogSummary:
+      type: object
+      required: [slug, title, state, created_at, updated_at]
+      properties:
+        slug:
+          type: string
+        title:
+          type: string
+        subtitle:
+          type: string
+        description:
+          type: string
+        cover_image:
+          type: string
+        reading_time:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: string
+        state:
+          $ref: '#/components/schemas/LogState'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Log:
+      type: object
+      required: [slug, title, state, body, created_at, updated_at]
+      properties:
+        slug:
+          type: string
+        title:
+          type: string
+        subtitle:
+          type: string
+        description:
+          type: string
+        cover_image:
+          type: string
+        reading_time:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: string
+        state:
+          $ref: '#/components/schemas/LogState'
+        body:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    LogIndex:
+      type: object
+      required: [total, items]
+      properties:
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogSummary'
+
+    LogCreate:
+      type: object
+      required: [slug, title]
+      properties:
+        slug:
+          type: string
+        title:
+          type: string
+        subtitle:
+          type: string
+        description:
+          type: string
+        cover_image:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        body:
+          type: string
+
+    LogPatch:
+      type: object
+      properties:
+        slug:
+          type: string
+        title:
+          type: string
+        subtitle:
+          type: string
+        description:
+          type: string
+        cover_image:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        body:
+          type: string
+        state:
+          $ref: '#/components/schemas/LogState'
+
+    Profile:
+      type: object
+      required: [key, body]
+      properties:
+        key:
+          type: string
+        body:
+          $ref: '#/components/schemas/ProfileBody'
+
+    ProfileBody:
+      description: Opaque JSON; custodian does not validate its shape.
+      type: object
+      additionalProperties: true
+
+    MediaState:
+      type: string
+      enum: [pending, available]
+
+    Media:
+      type: object
+      required: [key, state, url, content_type, created_at]
+      properties:
+        key:
+          type: string
+        state:
+          $ref: '#/components/schemas/MediaState'
+        url:
+          type: string
+          description: Public CDN URL; bytes never pass through custodian.
+        content_type:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+
+    MediaList:
+      type: object
+      required: [total, items]
+      properties:
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Media'
+
+    MediaReserve:
+      type: object
+      required: [content_type]
+      properties:
+        key:
+          type: string
+          description: Author-chosen kebab-case key; omit for a random one.
+        content_type:
+          type: string
+
+    MediaReservation:
+      type: object
+      required: [key, upload_url, url, expires_at]
+      properties:
+        key:
+          type: string
+        upload_url:
+          type: string
+        url:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+
+    Integration:
+      type: object
+      required: [source, fetched_at]
+      properties:
+        source:
+          $ref: '#/components/schemas/IntegrationSource'
+        fetched_at:
+          type: string
+          format: date-time
+          description: When custodian last fetched; present even when data is null.
+        data:
+          description: Latest polled state; null when nothing has been observed.
+          type: object
+          additionalProperties: true
+
+    IntegrationCredential:
+      type: object
+      required: [credential]
+      properties:
+        credential:
+          type: string
