@@ -10,6 +10,22 @@ Issues and specs (you may know a spec as a PRD) for this repo live as markdown f
 - Triage state is recorded as a `Status:` line near the top of each issue file (see `triage-labels.md` for the role strings)
 - Comments and conversation history append to the bottom of the file under a `## Comments` heading
 
+## Branching: one branch per component
+
+Issues, specs and the map are planning artifacts — they commit **straight to `main`**,
+so every fresh session sees the same backlog.
+
+Code is different. Each component (`custodian`, `broom`, `blank`, `persona`, `deed`)
+gets **one feature branch**, named for the component (e.g. `custodian`). Every ticket
+for that component is worked on that one branch — one commit per ticket — and the branch
+merges to `main` when the component reaches a reviewable checkpoint. This is a
+deliberate choice for a single developer: it keeps branching tight and avoids a churn of
+per-ticket branches and merges.
+
+The review gate still holds — it just runs **incrementally on the branch** rather than
+once per ticket. Because each ticket is its own commit, review commit-by-commit
+(`git review` against `main`, or `/code-review`) as work lands, not only at merge.
+
 ## When a skill says "publish to the issue tracker"
 
 Create a new file under `.scratch/<feature-slug>/` (creating the directory if needed).
