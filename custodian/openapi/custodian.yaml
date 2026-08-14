@@ -329,27 +329,6 @@ paths:
         default:
           $ref: '#/components/responses/Problem'
 
-  /admin/v1/integrations/{source}/credential:
-    put:
-      tags: [integrations]
-      operationId: putIntegrationCredential
-      summary: Write a third-party credential; takes effect on the next poll.
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/Source'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/IntegrationCredential'
-      responses:
-        '204':
-          description: Stored.
-        default:
-          $ref: '#/components/responses/Problem'
-
 components:
   securitySchemes:
     bearerAuth:
@@ -658,10 +637,3 @@ components:
           description: Latest polled state; null when nothing has been observed.
           type: object
           additionalProperties: true
-
-    IntegrationCredential:
-      type: object
-      required: [credential]
-      properties:
-        credential:
-          type: string

@@ -41,11 +41,3 @@ CREATE TABLE integration (
 );
 
 CREATE INDEX idx_integration_source_id ON integration (source, id);
-
--- Third-party credentials live here (not in env) so rotation is a terminal
--- gesture that takes effect on the next poll with no restart.
-CREATE TABLE integration_credential (
-    source     TEXT PRIMARY KEY,
-    credential TEXT NOT NULL,
-    updated_at TEXT NOT NULL
-);

@@ -11,9 +11,9 @@ This spec synthesises the resolved decision tickets `07` (language & runtime),
 `08` (storage model), `09` (API contract), `10` (auth model), `11`
 (observability), and `12` (derived-data freshness), grounded in the `03` domain
 model, ADR-0001 (hosting posture), and the downstream revisions from `19` (deed
-provisioning), `23`/`15` (persona blog delivery), and `16` (blog SEO). Where a
-later ticket revised an earlier one, the revised position is stated here as the
-single source of truth.
+provisioning), `23`/`15` (persona blog delivery), `16` (blog SEO), and `24`
+(integration definition model). Where a later ticket revised an earlier one, the
+revised position is stated here as the single source of truth.
 
 ## Problem Statement
 
@@ -98,8 +98,8 @@ current content the instant it is written.)
 29. As `broom`, I want to list and search media, so that I can find and reuse an existing asset.
 30. As `broom`, I want to delete a media record, so that I can remove an unused asset (the pre-delete reference scan is `broom`'s own courtesy, since custodian does not parse bodies for URLs).
 31. As `broom`, I want to upsert a profile record by key via `PUT` with an opaque JSON body that custodian does not validate, so that I control the profile shape by convention with `persona`.
-32. As `broom`, I want to force an immediate poll of an integration via `POST /admin/v1/integrations/{source}/refresh` and get the fresh record back, so that I can verify a newly rotated Steam key or fixed GitHub PAT.
-33. As `broom`, I want to write a third-party integration credential through the authed admin API and have it take effect on the next poll with no restart, so that key rotation is a terminal gesture, not a redeploy.
+32. As the operator (via an authed `curl`), I want to force an immediate poll of an integration via `POST /admin/v1/integrations/{source}/refresh` and get the fresh record back, so that I can verify a newly rotated Steam key or fixed GitHub PAT without waiting for the next tick. (`broom` does not wrap this — integrations have no `broom` verbs, per `24`.)
+33. As custodian, I want integration credentials read from my process environment at startup like every other secret, so that rotating a Steam key or GitHub PAT is a replace-the-secret-and-restart gesture and there is no bespoke credential-write API to attack.
 34. As `broom`, I want every error as RFC 9457 `application/problem+json` with a stable `code` and, for validation failures, a field-errors array, so that I can print `detail`, branch on `code`, and list field problems.
 
 ### Derived data — polling and caching
@@ -212,8 +212,9 @@ current content the instant it is written.)
   - Admin: `GET|POST /admin/v1/logs`, `PATCH|DELETE /admin/v1/logs/{slug}`;
     `GET|POST /admin/v1/media`, `GET|DELETE /admin/v1/media/{key}`,
     `POST /admin/v1/media/{key}/confirm`; `PUT /admin/v1/profile/{key}`;
-    `POST /admin/v1/integrations/{source}/refresh`; plus the admin
-    integration-credential write (see auth, below).
+    `POST /admin/v1/integrations/{source}/refresh` (operator/debug only — no
+    `broom` wrapper, `24`). There is **no** integration-credential write
+    endpoint: integration keys are environment secrets, not API-managed (`24`).
 - **Read shapes:** index → `{ total, items: [summary] }`, summaries omit `body`,
   listed-only, offset/limit pagination with optional `tag`. Detail → full log
   including `body`, any state. `persona` never fetches media from the API.
@@ -252,7 +253,7 @@ current content the instant it is written.)
   stays editorial (a preface/quote) and must **not** be conscripted as an SEO
   summary. Missing description → `persona` omits the meta tag.
 
-### Auth model (`10`, revised by `19`)
+### Auth model (`10`, revised by `24`)
 
 - **Single hashed bearer token** on `Authorization: Bearer`; custodian stores
   only the hash. No OAuth, mTLS, or login server (multi-user ceremony a single
@@ -262,19 +263,22 @@ current content the instant it is written.)
   privacy rests on slug unguessability. **No authenticated-preview third
   state** — inventing one would force `persona` to send a credential from the
   browser, exactly the `NEXT_PUBLIC_NOTION_KEY` trap.
-- **Secret model splits in two (revised by `19`):**
-  - **Bootstrap secrets** — the admin token hash and the OTLP export token —
-    are read from the process environment at startup. custodian treats their
-    source as opaque; `deed` owns the concrete store (SSM→tmpfs-env) and the
-    read grant but never the runtime injection. custodian reads only
-    `os.Getenv`.
-  - **Third-party integration keys** (Steam, GitHub) live in custodian's own
-    SQLite (this *revises* `10`'s original "env at startup" for integration
-    keys), written through the authed admin API by `broom`, read at runtime, no
-    restart on rotation, not AWS-specific. A self-hosted secrets manager was
-    rejected as a 24/7 component that reintroduces a bootstrap token.
-  - Either way, **no third-party key ever reaches `persona` or any browser** —
-    the poller fetches server-side → SQLite → `persona` reads only
+- **Secret model — one class, env-at-startup (`24`, collapsing `19`'s split):**
+  Every secret custodian needs — the admin token hash, the OTLP export token,
+  and the third-party integration keys (Steam, GitHub) — is read from the
+  process environment at startup. custodian treats their source as opaque;
+  `deed` owns the concrete store (SSM→tmpfs-env) and the read grant but never
+  the runtime injection. custodian reads only `os.Getenv`.
+  - Integration keys are environment secrets, **not** SQLite/`broom`-written.
+    Because the integration adapter set is code-defined and fixed at build time
+    (`24`, below), the credential set is likewise fixed and known at startup,
+    which puts it in exactly the same bootstrap class as the token hash. `19`'s
+    earlier "two secret classes" (integration keys in SQLite, rotated via
+    `broom`) is therefore dropped, restoring `10`'s original env-at-startup. The
+    self-hosted-secrets-manager rejection still stands — it was never the chosen
+    path.
+  - **No third-party key ever reaches `persona` or any browser** — the poller
+    fetches server-side → SQLite cache → `persona` reads only
     `GET /v1/integrations/{source}`.
 - **Rotation:** replace the secret and restart; revocation is implicit (old hash
   stops matching). No token registry, no self-credential endpoints, no grace
@@ -305,8 +309,20 @@ current content the instant it is written.)
 - **`/healthz`** is demoted to debug-only `curl`, not a load-bearing contract.
 - Adds ~£0/mo (free tier, no payment method attached = the hard off-switch).
 
-### Derived-data freshness (`12`)
+### Derived-data freshness (`12`, `24`)
 
+- **Integration sources are code-defined adapters, not `broom`-registered
+  (`24`).** Each source (Steam, GitHub) is a hand-written adapter — endpoint,
+  auth, and response-shaping — compiled into custodian. The set is fixed at
+  build time; adding a new source is a deliberate code change + redeploy, not a
+  runtime registration. The fully-generic, config-driven-source model was
+  weighed and dropped: generic *fetching* is cheap, but generic *shaping*
+  (Steam's nested 2-week aggregate, GitHub's filtered ETag'd feed → `persona`'s
+  predictable per-widget shape) is not, and pushing that mapping into config or
+  into `persona` fights custodian-owns-shaping. It stays fog with the same
+  "capable-of, don't-build" framing as the BaaS layer. Consequence: `broom` has
+  no integration verbs, and integration credentials are environment secrets
+  (see auth).
 - **One 5-minute poll tick**, both sources per tick, on the existing poller
   (the same loop that reaps stale media reservations). GitHub polled with
   `If-None-Match`. Interval is config, per-source overridable, 5-min default.
@@ -411,6 +427,11 @@ exercise the published contract.
   not built.
 - **custodian as a generic user-defined-type / BaaS layer** — future direction;
   v1 storage/API should merely not preclude it.
+- **Generic, config-driven / `broom`-registered integration sources** (`24`) —
+  a new source definable at runtime (URL, auth, cadence, field extraction)
+  without a custodian code change. Weighed and dropped for v1: integration
+  adapters are code-defined and their credentials are environment secrets.
+  Stays fog under the same framing as the BaaS layer.
 - **A public status page** — dropped for v1; folds into persona's page-inventory
   fog.
 - **Migrating existing Notion content** into custodian — a separate one-off

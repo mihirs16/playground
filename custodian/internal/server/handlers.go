@@ -81,7 +81,3 @@ func (h *handlers) PutProfile(w http.ResponseWriter, _ *http.Request, _ api.Prof
 func (h *handlers) RefreshIntegration(w http.ResponseWriter, _ *http.Request, _ api.Source) {
 	writeNotImplemented(w)
 }
-
-func (h *handlers) PutIntegrationCredential(w http.ResponseWriter, _ *http.Request, _ api.Source) {
-	writeNotImplemented(w)
-}

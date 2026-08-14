@@ -46,8 +46,9 @@ broom media ls
 broom media rm <key>                        # broom ref-check before delete (08)
 
 broom profile edit <key> / get <key>       # 03: raw JSON in $EDITOR → PUT-upsert, opaque
-broom integration refresh [name]           # manual /refresh (09/12); polling is otherwise automatic
 ```
+
+> **Amended by [custodian: integration definition model](24-custodian-integration-definition-model.md).** The `broom integration refresh [name]` verb and the `integration` noun-group are **removed** — integrations are code-defined with env-held credentials, so broom has no integration role for now. Custodian's `/admin/v1/integrations/{source}/refresh` endpoint stays (curl-able), just unwrapped by broom.
 
 `login`/`logout` stay top-level (auth verbs, no noun object).
 

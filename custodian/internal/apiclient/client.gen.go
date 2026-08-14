@@ -55,11 +55,6 @@ type Integration struct {
 	Source    IntegrationSource `json:"source"`
 }
 
-// IntegrationCredential defines model for IntegrationCredential.
-type IntegrationCredential struct {
-	Credential string `json:"credential"`
-}
-
 // IntegrationSource defines model for IntegrationSource.
 type IntegrationSource string
 
@@ -228,9 +223,6 @@ type ListPublicLogsParams struct {
 	Tag    *Tag    `form:"tag,omitempty" json:"tag,omitempty"`
 }
 
-// PutIntegrationCredentialJSONRequestBody defines body for PutIntegrationCredential for application/json ContentType.
-type PutIntegrationCredentialJSONRequestBody = IntegrationCredential
-
 // CreateLogJSONRequestBody defines body for CreateLog for application/json ContentType.
 type CreateLogJSONRequestBody = LogCreate
 
@@ -316,11 +308,6 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
-	// PutIntegrationCredentialWithBody request with any body
-	PutIntegrationCredentialWithBody(ctx context.Context, source Source, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	PutIntegrationCredential(ctx context.Context, source Source, body PutIntegrationCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// RefreshIntegration request
 	RefreshIntegration(ctx context.Context, source Source, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -373,30 +360,6 @@ type ClientInterface interface {
 
 	// GetPublicProfile request
 	GetPublicProfile(ctx context.Context, key ProfileKey, reqEditors ...RequestEditorFn) (*http.Response, error)
-}
-
-func (c *Client) PutIntegrationCredentialWithBody(ctx context.Context, source Source, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPutIntegrationCredentialRequestWithBody(c.Server, source, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PutIntegrationCredential(ctx context.Context, source Source, body PutIntegrationCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPutIntegrationCredentialRequest(c.Server, source, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
 }
 
 func (c *Client) RefreshIntegration(ctx context.Context, source Source, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -625,53 +588,6 @@ func (c *Client) GetPublicProfile(ctx context.Context, key ProfileKey, reqEditor
 		return nil, err
 	}
 	return c.Client.Do(req)
-}
-
-// NewPutIntegrationCredentialRequest calls the generic PutIntegrationCredential builder with application/json body
-func NewPutIntegrationCredentialRequest(server string, source Source, body PutIntegrationCredentialJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewPutIntegrationCredentialRequestWithBody(server, source, "application/json", bodyReader)
-}
-
-// NewPutIntegrationCredentialRequestWithBody generates requests for PutIntegrationCredential with any type of body
-func NewPutIntegrationCredentialRequestWithBody(server string, source Source, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "source", runtime.ParamLocationPath, source)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/admin/v1/integrations/%s/credential", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("PUT", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
 }
 
 // NewRefreshIntegrationRequest generates requests for RefreshIntegration
@@ -1422,11 +1338,6 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
-	// PutIntegrationCredentialWithBodyWithResponse request with any body
-	PutIntegrationCredentialWithBodyWithResponse(ctx context.Context, source Source, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutIntegrationCredentialResponse, error)
-
-	PutIntegrationCredentialWithResponse(ctx context.Context, source Source, body PutIntegrationCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*PutIntegrationCredentialResponse, error)
-
 	// RefreshIntegrationWithResponse request
 	RefreshIntegrationWithResponse(ctx context.Context, source Source, reqEditors ...RequestEditorFn) (*RefreshIntegrationResponse, error)
 
@@ -1479,28 +1390,6 @@ type ClientWithResponsesInterface interface {
 
 	// GetPublicProfileWithResponse request
 	GetPublicProfileWithResponse(ctx context.Context, key ProfileKey, reqEditors ...RequestEditorFn) (*GetPublicProfileResponse, error)
-}
-
-type PutIntegrationCredentialResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	ApplicationproblemJSONDefault *Problem
-}
-
-// Status returns HTTPResponse.Status
-func (r PutIntegrationCredentialResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r PutIntegrationCredentialResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
 }
 
 type RefreshIntegrationResponse struct {
@@ -1855,23 +1744,6 @@ func (r GetPublicProfileResponse) StatusCode() int {
 	return 0
 }
 
-// PutIntegrationCredentialWithBodyWithResponse request with arbitrary body returning *PutIntegrationCredentialResponse
-func (c *ClientWithResponses) PutIntegrationCredentialWithBodyWithResponse(ctx context.Context, source Source, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutIntegrationCredentialResponse, error) {
-	rsp, err := c.PutIntegrationCredentialWithBody(ctx, source, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePutIntegrationCredentialResponse(rsp)
-}
-
-func (c *ClientWithResponses) PutIntegrationCredentialWithResponse(ctx context.Context, source Source, body PutIntegrationCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*PutIntegrationCredentialResponse, error) {
-	rsp, err := c.PutIntegrationCredential(ctx, source, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePutIntegrationCredentialResponse(rsp)
-}
-
 // RefreshIntegrationWithResponse request returning *RefreshIntegrationResponse
 func (c *ClientWithResponses) RefreshIntegrationWithResponse(ctx context.Context, source Source, reqEditors ...RequestEditorFn) (*RefreshIntegrationResponse, error) {
 	rsp, err := c.RefreshIntegration(ctx, source, reqEditors...)
@@ -2037,32 +1909,6 @@ func (c *ClientWithResponses) GetPublicProfileWithResponse(ctx context.Context, 
 		return nil, err
 	}
 	return ParseGetPublicProfileResponse(rsp)
-}
-
-// ParsePutIntegrationCredentialResponse parses an HTTP response from a PutIntegrationCredentialWithResponse call
-func ParsePutIntegrationCredentialResponse(rsp *http.Response) (*PutIntegrationCredentialResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &PutIntegrationCredentialResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest Problem
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
 }
 
 // ParseRefreshIntegrationResponse parses an HTTP response from a RefreshIntegrationWithResponse call

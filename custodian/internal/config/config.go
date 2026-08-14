@@ -25,6 +25,11 @@ type Config struct {
 	OTLPEndpoint string
 	OTLPToken    string
 
+	// IntegrationKeys holds the per-source third-party secret, keyed by source.
+	// Read from the environment like every other secret; the source string is
+	// treated as opaque and the poller (06) consumes these at fetch time.
+	IntegrationKeys map[string]string
+
 	// CORSAllowlist is the set of origins the public surface allows explicitly.
 	// Never a wildcard; an empty list means no cross-origin reads are permitted.
 	CORSAllowlist []string
@@ -55,6 +60,10 @@ func Load() Config {
 		CORSAllowlist:  splitList(os.Getenv("CUSTODIAN_CORS_ALLOWLIST")),
 		MediaBucket:    os.Getenv("CUSTODIAN_MEDIA_BUCKET"),
 		PollIntervals:  resolvePollIntervals(),
+		IntegrationKeys: map[string]string{
+			"steam":  os.Getenv("CUSTODIAN_STEAM_KEY"),
+			"github": os.Getenv("CUSTODIAN_GITHUB_PAT"),
+		},
 	}
 	return cfg
 }

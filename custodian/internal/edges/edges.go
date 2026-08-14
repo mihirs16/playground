@@ -31,9 +31,9 @@ type FetchResult struct {
 }
 
 // SourceClient fetches the current state of one third-party source. The
-// credential is passed per-call because it lives in custodian's own SQLite and
-// can rotate between polls with no restart. A network failure is an error, not a
-// result — an unreachable source must never flip the health gauge.
+// credential is passed per-call, resolved from the process environment like
+// every other secret; rotation is replace-and-restart. A network failure is an
+// error, not a result — an unreachable source must never flip the health gauge.
 type SourceClient interface {
 	Fetch(ctx context.Context, source, credential, etag string) (FetchResult, error)
 }
