@@ -39,7 +39,7 @@ func New(cfg config.Config, db *storage.DB, edgeSet edges.Set, logger *slog.Logg
 
 	router.Get("/healthz", srv.healthz)
 
-	api.HandlerFromMux(&handlers{db: db, edges: edgeSet}, router)
+	api.HandlerFromMux(&handlers{db: db, edges: edgeSet, mediaBaseURL: cfg.MediaCDNBase}, router)
 
 	srv.Handler = router
 	return srv

@@ -14,6 +14,10 @@ import (
 type handlers struct {
 	db    *storage.DB
 	edges edges.Set
+
+	// mediaBaseURL is the CDN origin a reserved media record's public url is
+	// built under; see config.MediaCDNBase.
+	mediaBaseURL string
 }
 
 var _ api.ServerInterface = (*handlers)(nil)
@@ -31,25 +35,8 @@ func (h *handlers) GetPublicProfile(w http.ResponseWriter, _ *http.Request, _ ap
 // Admin surface. The log lifecycle handlers — ListAdminLogs, CreateLog,
 // PatchLog, DeleteLog — live in admin_logs.go.
 
-func (h *handlers) ListMedia(w http.ResponseWriter, _ *http.Request, _ api.ListMediaParams) {
-	writeNotImplemented(w)
-}
-
-func (h *handlers) ReserveMedia(w http.ResponseWriter, _ *http.Request) {
-	writeNotImplemented(w)
-}
-
-func (h *handlers) GetMedia(w http.ResponseWriter, _ *http.Request, _ api.MediaKey) {
-	writeNotImplemented(w)
-}
-
-func (h *handlers) DeleteMedia(w http.ResponseWriter, _ *http.Request, _ api.MediaKey) {
-	writeNotImplemented(w)
-}
-
-func (h *handlers) ConfirmMedia(w http.ResponseWriter, _ *http.Request, _ api.MediaKey) {
-	writeNotImplemented(w)
-}
+// The media reserve → confirm handlers — ListMedia, ReserveMedia, GetMedia,
+// DeleteMedia, ConfirmMedia — live in media.go.
 
 func (h *handlers) PutProfile(w http.ResponseWriter, _ *http.Request, _ api.ProfileKey) {
 	writeNotImplemented(w)
