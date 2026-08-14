@@ -41,12 +41,13 @@ func TestHealthzDegradedWhenBucketUnreachable(t *testing.T) {
 	}
 }
 
-// The walking skeleton reaches every business handler through real routing and
-// returns a problem+json placeholder — proof the whole stack is wired.
+// A public route whose behaviour is not yet wired still reaches its handler
+// through real routing and returns a problem+json placeholder — proof the whole
+// stack is wired end to end.
 func TestPublicRouteReachesHandler(t *testing.T) {
 	h := newHarness(t)
 
-	resp := h.request(t, http.MethodGet, "/v1/logs", nil)
+	resp := h.request(t, http.MethodGet, "/v1/integrations/steam", nil)
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusNotImplemented {
@@ -166,7 +167,10 @@ func TestGeneratedClientReachesPublicSurface(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list logs: %v", err)
 	}
-	if resp.StatusCode() != http.StatusNotImplemented {
-		t.Fatalf("status = %d, want 501", resp.StatusCode())
+	if resp.StatusCode() != http.StatusOK {
+		t.Fatalf("status = %d, want 200", resp.StatusCode())
+	}
+	if resp.JSON200 == nil || resp.JSON200.Total != 0 {
+		t.Fatalf("expected an empty index, got %+v", resp.JSON200)
 	}
 }
