@@ -73,10 +73,15 @@ func corsMiddleware(allowlist []string) func(http.Handler) http.Handler {
 				return
 			}
 
+			// Vary on Origin unconditionally: these responses are
+			// Cache-Control: public behind CloudFront, so a shared cache must
+			// never serve an allowed origin's CORS headers to a different one
+			// (or an ACAO-less body back to an allowed origin).
+			w.Header().Set("Vary", "Origin")
+
 			origin := r.Header.Get("Origin")
 			if origin != "" && allowed[origin] {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
-				w.Header().Set("Vary", "Origin")
 				w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
 				w.Header().Set("Access-Control-Allow-Headers", "If-None-Match")
 				w.Header().Set("Access-Control-Expose-Headers", "ETag")
@@ -93,7 +98,10 @@ func corsMiddleware(allowlist []string) func(http.Handler) http.Handler {
 
 // adminAuthMiddleware guards only /admin/*. It accepts a single long-lived
 // bearer token, compares its SHA-256 against the configured hash in constant
-// time, and holds no plaintext token anywhere.
+// time, and holds no plaintext token anywhere. Every admin response — including
+// the rejection — is marked no-store so no cache ever holds authored drafts.
+// The credential is read only from the Authorization header; a cookie is never
+// consulted.
 func adminAuthMiddleware(tokenHash string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -101,6 +109,7 @@ func adminAuthMiddleware(tokenHash string) func(http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
+			w.Header().Set("Cache-Control", "no-store")
 			if !validBearer(r.Header.Get("Authorization"), tokenHash) {
 				writeProblem(w, http.StatusUnauthorized, "unauthorized", "a valid admin bearer token is required")
 				return

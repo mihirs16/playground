@@ -23,6 +23,22 @@ func writeProblem(w http.ResponseWriter, status int, code, detail string) {
 	_ = json.NewEncoder(w).Encode(problem)
 }
 
+// writeValidationProblem renders a 422 problem carrying the per-field reasons a
+// write was rejected, so broom can point the author at the offending fields.
+func writeValidationProblem(w http.ResponseWriter, fields []api.FieldError) {
+	detail := "the request body failed validation"
+	problem := api.Problem{
+		Title:  http.StatusText(http.StatusUnprocessableEntity),
+		Status: http.StatusUnprocessableEntity,
+		Code:   "validation_failed",
+		Detail: &detail,
+		Errors: &fields,
+	}
+	w.Header().Set("Content-Type", problemContentType)
+	w.WriteHeader(http.StatusUnprocessableEntity)
+	_ = json.NewEncoder(w).Encode(problem)
+}
+
 // writeNotImplemented answers a route whose surrounding infrastructure —
 // routing, auth, CORS, storage — is live but whose behaviour is not yet wired.
 func writeNotImplemented(w http.ResponseWriter) {

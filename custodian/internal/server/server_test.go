@@ -89,9 +89,9 @@ func TestAdminAcceptsValidBearer(t *testing.T) {
 	resp := h.request(t, http.MethodGet, "/admin/v1/logs", adminAuth())
 	defer resp.Body.Close()
 
-	// Past auth, the skeleton handler answers 501 — not 401.
-	if resp.StatusCode != http.StatusNotImplemented {
-		t.Fatalf("status = %d, want 501", resp.StatusCode)
+	// Past auth, the admin index answers 200 — not 401.
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want 200", resp.StatusCode)
 	}
 }
 
