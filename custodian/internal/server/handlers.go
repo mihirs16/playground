@@ -28,23 +28,8 @@ func (h *handlers) GetPublicProfile(w http.ResponseWriter, _ *http.Request, _ ap
 	writeNotImplemented(w)
 }
 
-// Admin surface.
-
-func (h *handlers) ListAdminLogs(w http.ResponseWriter, _ *http.Request, _ api.ListAdminLogsParams) {
-	writeNotImplemented(w)
-}
-
-func (h *handlers) CreateLog(w http.ResponseWriter, _ *http.Request) {
-	writeNotImplemented(w)
-}
-
-func (h *handlers) PatchLog(w http.ResponseWriter, _ *http.Request, _ api.Slug) {
-	writeNotImplemented(w)
-}
-
-func (h *handlers) DeleteLog(w http.ResponseWriter, _ *http.Request, _ api.Slug) {
-	writeNotImplemented(w)
-}
+// Admin surface. The log lifecycle handlers — ListAdminLogs, CreateLog,
+// PatchLog, DeleteLog — live in admin_logs.go.
 
 func (h *handlers) ListMedia(w http.ResponseWriter, _ *http.Request, _ api.ListMediaParams) {
 	writeNotImplemented(w)

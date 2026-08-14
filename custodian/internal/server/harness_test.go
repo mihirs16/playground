@@ -1,6 +1,7 @@
 package server_test
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -110,6 +111,33 @@ func (h *harness) request(t *testing.T, method, path string, headers map[string]
 	if err != nil {
 		t.Fatalf("build request: %v", err)
 	}
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	resp, err := h.server.Client().Do(req)
+	if err != nil {
+		t.Fatalf("do request: %v", err)
+	}
+	return resp
+}
+
+// requestJSON sends a request carrying a JSON body, marshalling body and setting
+// Content-Type. A nil body sends no payload.
+func (h *harness) requestJSON(t *testing.T, method, path string, headers map[string]string, body any) *http.Response {
+	t.Helper()
+	var reader io.Reader
+	if body != nil {
+		encoded, err := json.Marshal(body)
+		if err != nil {
+			t.Fatalf("marshal body: %v", err)
+		}
+		reader = bytes.NewReader(encoded)
+	}
+	req, err := http.NewRequest(method, h.server.URL+path, reader)
+	if err != nil {
+		t.Fatalf("build request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
