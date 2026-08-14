@@ -30,8 +30,20 @@ const (
 // published HTTP contract.
 type harness struct {
 	server *httptest.Server
+	srv    *server.Server
 	edges  edges.Set
 	db     *storage.DB
+}
+
+// sourceClient exposes the fake Steam/GitHub client the harness is wired to, so
+// an integration test can script changed / unchanged / unreachable results.
+func (h *harness) sourceClient(t *testing.T) *edges.FakeSourceClient {
+	t.Helper()
+	client, ok := h.edges.SourceClient.(*edges.FakeSourceClient)
+	if !ok {
+		t.Fatalf("source client is %T, want *edges.FakeSourceClient", h.edges.SourceClient)
+	}
+	return client
 }
 
 func newHarness(t *testing.T) *harness {
@@ -45,9 +57,11 @@ func newHarness(t *testing.T) *harness {
 
 	sum := sha256.Sum256([]byte(testAdminToken))
 	cfg := config.Config{
-		AdminTokenHash: hex.EncodeToString(sum[:]),
-		CORSAllowlist:  []string{testOrigin},
-		MediaCDNBase:   testCDNBase,
+		AdminTokenHash:  hex.EncodeToString(sum[:]),
+		CORSAllowlist:   []string{testOrigin},
+		MediaCDNBase:    testCDNBase,
+		IntegrationKeys: map[string]string{"steam": "steam-key", "github": "github-pat"},
+		PollIntervals:   map[string]time.Duration{"steam": time.Minute, "github": time.Minute},
 	}
 
 	fakes := edges.NewFakes()
@@ -57,7 +71,7 @@ func newHarness(t *testing.T) *harness {
 	ts := httptest.NewServer(srv)
 	t.Cleanup(ts.Close)
 
-	return &harness{server: ts, edges: fakes, db: db}
+	return &harness{server: ts, srv: srv, edges: fakes, db: db}
 }
 
 // seedLog is the test-side stand-in for the not-yet-built write path (ticket
@@ -175,4 +189,24 @@ func (h *harness) requestJSON(t *testing.T, method, path string, headers map[str
 
 func adminAuth() map[string]string {
 	return map[string]string{"Authorization": "Bearer " + testAdminToken}
+}
+
+// seedMedia inserts a media row directly so a reap test has reservations to act
+// on without walking the reserve path. expiresAt is stored as RFC3339Nano, the
+// format the reserve path writes.
+func (h *harness) seedMedia(t *testing.T, key, state string, expiresAt time.Time) {
+	t.Helper()
+	_, err := h.db.Exec(
+		`INSERT INTO media (key, state, content_type, url, created_at, expires_at)
+		 VALUES (?, ?, 'image/png', ?, ?, ?)`,
+		key, state, testCDNBase+"/"+key,
+		time.Now().UTC().Format(time.RFC3339Nano), expiresAt.Format(time.RFC3339Nano),
+	)
+	if err != nil {
+		t.Fatalf("seed media %q: %v", key, err)
+	}
+}
+
+func discardLogger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
 }

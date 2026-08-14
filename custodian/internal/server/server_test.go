@@ -41,17 +41,16 @@ func TestHealthzDegradedWhenBucketUnreachable(t *testing.T) {
 	}
 }
 
-// A public route whose behaviour is not yet wired still reaches its handler
-// through real routing and returns a problem+json placeholder — proof the whole
-// stack is wired end to end.
+// A public route reaches its handler through real routing and renders a
+// problem+json on the error path — proof the whole stack is wired end to end.
 func TestPublicRouteReachesHandler(t *testing.T) {
 	h := newHarness(t)
 
-	resp := h.request(t, http.MethodGet, "/v1/integrations/steam", nil)
+	resp := h.request(t, http.MethodGet, "/v1/profile/does-not-exist", nil)
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusNotImplemented {
-		t.Fatalf("status = %d, want 501", resp.StatusCode)
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404", resp.StatusCode)
 	}
 	if ct := resp.Header.Get("Content-Type"); ct != "application/problem+json" {
 		t.Fatalf("content-type = %q, want application/problem+json", ct)
@@ -64,8 +63,8 @@ func TestPublicRouteReachesHandler(t *testing.T) {
 	if err := json.NewDecoder(resp.Body).Decode(&problem); err != nil {
 		t.Fatalf("decode problem: %v", err)
 	}
-	if problem.Code != "not_implemented" {
-		t.Fatalf("code = %q, want not_implemented", problem.Code)
+	if problem.Code != "not_found" {
+		t.Fatalf("code = %q, want not_found", problem.Code)
 	}
 }
 
