@@ -12,10 +12,10 @@ introduces the `profile` table (one row per key: an `id` plus the opaque JSON
 
 **Blocked by:** 02, 03.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `profile` table stores one row per key with an opaque JSON body
-- [ ] `GET /v1/profile/{key}` serves the record with `ETag` + `Cache-Control` and honours `If-None-Match` → `304`
-- [ ] `PUT /admin/v1/profile/{key}` upserts and does not validate the body shape
-- [ ] Admin write is authed + `no-store`; public read is on the CORS allowlist
-- [ ] Tests assert upsert semantics and read headers black-box against real sqlite
+- [x] `profile` table stores one row per key with an opaque JSON body
+- [x] `GET /v1/profile/{key}` serves the record with `ETag` + `Cache-Control` and honours `If-None-Match` → `304`
+- [x] `PUT /admin/v1/profile/{key}` upserts and does not validate the body shape
+- [x] Admin write is authed + `no-store`; public read is on the CORS allowlist
+- [x] Tests assert upsert semantics and read headers black-box against real sqlite

@@ -22,13 +22,10 @@ type handlers struct {
 
 var _ api.ServerInterface = (*handlers)(nil)
 
-// Public surface. ListPublicLogs and GetPublicLog live in logs.go.
+// Public surface. ListPublicLogs and GetPublicLog live in logs.go; the profile
+// read GetPublicProfile lives in profile.go.
 
 func (h *handlers) GetPublicIntegration(w http.ResponseWriter, _ *http.Request, _ api.Source) {
-	writeNotImplemented(w)
-}
-
-func (h *handlers) GetPublicProfile(w http.ResponseWriter, _ *http.Request, _ api.ProfileKey) {
 	writeNotImplemented(w)
 }
 
@@ -36,11 +33,8 @@ func (h *handlers) GetPublicProfile(w http.ResponseWriter, _ *http.Request, _ ap
 // PatchLog, DeleteLog — live in admin_logs.go.
 
 // The media reserve → confirm handlers — ListMedia, ReserveMedia, GetMedia,
-// DeleteMedia, ConfirmMedia — live in media.go.
-
-func (h *handlers) PutProfile(w http.ResponseWriter, _ *http.Request, _ api.ProfileKey) {
-	writeNotImplemented(w)
-}
+// DeleteMedia, ConfirmMedia — live in media.go. The profile write PutProfile
+// lives in profile.go.
 
 func (h *handlers) RefreshIntegration(w http.ResponseWriter, _ *http.Request, _ api.Source) {
 	writeNotImplemented(w)
