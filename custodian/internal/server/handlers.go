@@ -18,15 +18,7 @@ type handlers struct {
 
 var _ api.ServerInterface = (*handlers)(nil)
 
-// Public surface.
-
-func (h *handlers) ListPublicLogs(w http.ResponseWriter, _ *http.Request, _ api.ListPublicLogsParams) {
-	writeNotImplemented(w)
-}
-
-func (h *handlers) GetPublicLog(w http.ResponseWriter, _ *http.Request, _ api.Slug) {
-	writeNotImplemented(w)
-}
+// Public surface. ListPublicLogs and GetPublicLog live in logs.go.
 
 func (h *handlers) GetPublicIntegration(w http.ResponseWriter, _ *http.Request, _ api.Source) {
 	writeNotImplemented(w)

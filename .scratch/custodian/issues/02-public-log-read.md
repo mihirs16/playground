@@ -15,12 +15,12 @@ allowlist (never wildcard), exposes `ETag`, and allows `If-None-Match`.
 
 **Blocked by:** 01.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `GET /v1/logs` returns `{ total, items }`, summaries omit `body`, listed-only
-- [ ] Index honours `limit`/`offset` and optional `tag` filter
-- [ ] `GET /v1/logs/{slug}` returns full body for any state, including `unlisted`
-- [ ] Every read carries `ETag` + long revalidate-friendly `Cache-Control`
-- [ ] `If-None-Match` match returns `304` with empty body
-- [ ] CORS allowlist is explicit (not wildcard), exposes `ETag`, allows `If-None-Match`
-- [ ] Tests drive both endpoints black-box against real sqlite and assert payloads + headers + DB state
+- [x] `GET /v1/logs` returns `{ total, items }`, summaries omit `body`, listed-only
+- [x] Index honours `limit`/`offset` and optional `tag` filter
+- [x] `GET /v1/logs/{slug}` returns full body for any state, including `unlisted`
+- [x] Every read carries `ETag` + long revalidate-friendly `Cache-Control`
+- [x] `If-None-Match` match returns `304` with empty body
+- [x] CORS allowlist is explicit (not wildcard), exposes `ETag`, allows `If-None-Match`
+- [x] Tests drive both endpoints black-box against real sqlite and assert payloads + headers + DB state
