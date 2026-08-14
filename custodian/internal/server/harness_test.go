@@ -22,6 +22,7 @@ import (
 const (
 	testAdminToken = "test-admin-token"
 	testOrigin     = "https://persona.example.com"
+	testCDNBase    = "https://cdn.example.com"
 )
 
 // harness stands the real chi router up against a real temp-file SQLite (with
@@ -46,6 +47,7 @@ func newHarness(t *testing.T) *harness {
 	cfg := config.Config{
 		AdminTokenHash: hex.EncodeToString(sum[:]),
 		CORSAllowlist:  []string{testOrigin},
+		MediaCDNBase:   testCDNBase,
 	}
 
 	fakes := edges.NewFakes()
@@ -99,6 +101,29 @@ func (h *harness) logState(t *testing.T, slug string) (string, bool) {
 	t.Helper()
 	var state string
 	err := h.db.QueryRow(`SELECT state FROM log WHERE slug = ?`, slug).Scan(&state)
+	if err != nil {
+		return "", false
+	}
+	return state, true
+}
+
+// objectStore exposes the fake S3 the harness is wired to, so a media test can
+// simulate broom's upload and assert what custodian presigned.
+func (h *harness) objectStore(t *testing.T) *edges.FakeObjectStore {
+	t.Helper()
+	store, ok := h.edges.ObjectStore.(*edges.FakeObjectStore)
+	if !ok {
+		t.Fatalf("object store is %T, want *edges.FakeObjectStore", h.edges.ObjectStore)
+	}
+	return store
+}
+
+// mediaState reads a media record's state straight from the database, for tests
+// that assert confirm did (or did not) flip it.
+func (h *harness) mediaState(t *testing.T, key string) (string, bool) {
+	t.Helper()
+	var state string
+	err := h.db.QueryRow(`SELECT state FROM media WHERE key = ?`, key).Scan(&state)
 	if err != nil {
 		return "", false
 	}
