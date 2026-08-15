@@ -16,7 +16,7 @@ func Real(cfg config.Config) Set {
 	return Set{
 		ObjectStore:  &s3Store{bucket: cfg.MediaBucket},
 		SourceClient: &httpSourceClient{},
-		Telemetry:    &otlpTelemetry{endpoint: cfg.OTLPEndpoint, token: cfg.OTLPToken},
+		Telemetry:    newOTLPTelemetry(cfg.OTLPEndpoint, cfg.OTLPToken),
 	}
 }
 
@@ -41,15 +41,6 @@ type httpSourceClient struct{}
 func (c *httpSourceClient) Fetch(context.Context, string, string, string) (FetchResult, error) {
 	return FetchResult{}, errNotImplemented{"source client fetch"}
 }
-
-type otlpTelemetry struct {
-	endpoint string
-	token    string
-}
-
-func (t *otlpTelemetry) RecordHealth(context.Context, bool) {}
-
-func (t *otlpTelemetry) Shutdown(context.Context) error { return nil }
 
 type errNotImplemented struct{ what string }
 
