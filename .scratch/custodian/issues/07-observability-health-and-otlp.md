@@ -18,11 +18,11 @@ live backend.
 
 **Blocked by:** 06.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `health` gauge computed on a timer from `SELECT 1` + S3 `HeadBucket` + disk/mem headroom, emitting `1`/`0`
-- [ ] Third-party API reachability excluded from health (fake third-party failure does not flip the gauge)
-- [ ] OTel Go SDK exports metrics + traces + logs over OTLP/HTTP to a config-URL endpoint; endpoint + token from env
-- [ ] `/admin/*` access logged with timestamp, real client IP (via XFF), path, result
-- [ ] Debug-only `/healthz` responds for manual curl
-- [ ] Gauge value asserted through the fake OTLP sink without a live backend
+- [x] `health` gauge computed on a timer from `SELECT 1` + S3 `HeadBucket` + disk/mem headroom, emitting `1`/`0`
+- [x] Third-party API reachability excluded from health (fake third-party failure does not flip the gauge)
+- [x] OTel Go SDK exports metrics + traces + logs over OTLP/HTTP to a config-URL endpoint; endpoint + token from env
+- [x] `/admin/*` access logged with timestamp, real client IP (via XFF), path, result
+- [x] Debug-only `/healthz` responds for manual curl
+- [x] Gauge value asserted through the fake OTLP sink without a live backend

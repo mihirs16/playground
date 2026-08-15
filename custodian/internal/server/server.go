@@ -12,6 +12,7 @@ import (
 	"github.com/mihirs16/playground/custodian/internal/api"
 	"github.com/mihirs16/playground/custodian/internal/config"
 	"github.com/mihirs16/playground/custodian/internal/edges"
+	"github.com/mihirs16/playground/custodian/internal/health"
 	"github.com/mihirs16/playground/custodian/internal/poller"
 	"github.com/mihirs16/playground/custodian/internal/storage"
 )
@@ -24,6 +25,7 @@ type Server struct {
 	db     *storage.DB
 	edges  edges.Set
 	poller *poller.Poller
+	health *health.Checker
 }
 
 // New builds the whole HTTP handler. Middleware order is deliberate: recover
@@ -31,8 +33,9 @@ type Server struct {
 // (CORS on /v1/*, auth on /admin/*). The generated router registers the two
 // API surfaces onto the same base router.
 func New(cfg config.Config, db *storage.DB, edgeSet edges.Set, logger *slog.Logger) *Server {
-	plr := poller.New(db, edgeSet.SourceClient, cfg.IntegrationKeys, cfg.PollIntervals)
-	srv := &Server{db: db, edges: edgeSet, poller: plr}
+	checker := health.New(db, edgeSet.ObjectStore, edgeSet.Telemetry)
+	plr := poller.New(db, edgeSet.SourceClient, cfg.IntegrationKeys, cfg.PollIntervals, checker)
+	srv := &Server{db: db, edges: edgeSet, poller: plr, health: checker}
 
 	router := chi.NewRouter()
 	router.Use(recoverMiddleware(logger))

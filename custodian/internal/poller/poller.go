@@ -16,6 +16,13 @@ import (
 	"github.com/mihirs16/playground/custodian/internal/storage"
 )
 
+// HealthChecker self-assesses custodian and records the health gauge. The poll
+// loop is the timer that drives it, so the gauge doubles as custodian's
+// heartbeat.
+type HealthChecker interface {
+	Assess(ctx context.Context) bool
+}
+
 // Poller owns the poll-and-reap loop. Credentials are resolved from config at
 // construction (env-at-startup, like every other secret) and passed per-fetch;
 // the poller never reads or writes them anywhere else.
@@ -24,13 +31,15 @@ type Poller struct {
 	client    edges.SourceClient
 	keys      map[string]string
 	intervals map[string]time.Duration
+	health    HealthChecker
 }
 
 // New builds a poller over the injected source client. keys maps a source to its
 // third-party credential; intervals maps a source to its poll cadence, each
-// already resolved against the default by config.
-func New(db *storage.DB, client edges.SourceClient, keys map[string]string, intervals map[string]time.Duration) *Poller {
-	return &Poller{db: db, client: client, keys: keys, intervals: intervals}
+// already resolved against the default by config. health is assessed on every
+// tick so the health gauge is emitted on the same timer as the poll.
+func New(db *storage.DB, client edges.SourceClient, keys map[string]string, intervals map[string]time.Duration, health HealthChecker) *Poller {
+	return &Poller{db: db, client: client, keys: keys, intervals: intervals, health: health}
 }
 
 // Poll fetches a source once and appends a new row only when the state changed.
@@ -94,6 +103,7 @@ func (p *Poller) Startup(ctx context.Context, logger *slog.Logger) {
 			logger.Warn("startup poll failed", "source", source, "error", err)
 		}
 	}
+	p.health.Assess(ctx)
 }
 
 // Run polls each source once at startup, then loops each source on its own
@@ -129,6 +139,7 @@ func (p *Poller) loop(ctx context.Context, source string, logger *slog.Logger, d
 			if _, err := p.Reap(ctx, time.Now().UTC()); err != nil {
 				logger.Warn("reap failed", "error", err)
 			}
+			p.health.Assess(ctx)
 		}
 	}
 }
