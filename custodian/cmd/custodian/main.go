@@ -50,6 +50,8 @@ func run(logger *slog.Logger) error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
+	go srv.Poller().Run(ctx, logger)
+
 	serveErr := make(chan error, 1)
 	go func() {
 		logger.Info("custodian listening", "addr", cfg.Addr)
