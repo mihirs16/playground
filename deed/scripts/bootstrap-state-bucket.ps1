@@ -48,10 +48,20 @@ aws s3api put-bucket-versioning `
 if ($LASTEXITCODE -ne 0) { throw "put-bucket-versioning failed" }
 Write-Host "Versioning enabled."
 
-aws s3api put-bucket-encryption `
-  --bucket $Bucket `
-  --server-side-encryption-configuration '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"aws:kms"}}]}'
-if ($LASTEXITCODE -ne 0) { throw "put-bucket-encryption failed" }
+# PowerShell strips the inner double quotes when passing inline JSON to a native
+# exe, so hand the AWS CLI a file:// reference instead -- version-independent and
+# free of Windows quoting rules.
+$encConfig = '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"aws:kms"}}]}'
+$encFile = New-TemporaryFile
+try {
+  Set-Content -Path $encFile -Value $encConfig -Encoding ascii
+  aws s3api put-bucket-encryption `
+    --bucket $Bucket `
+    --server-side-encryption-configuration "file://$($encFile.FullName)"
+  if ($LASTEXITCODE -ne 0) { throw "put-bucket-encryption failed" }
+} finally {
+  Remove-Item $encFile -Force -ErrorAction SilentlyContinue
+}
 Write-Host "Default encryption (aws:kms) enabled."
 
 aws s3api put-public-access-block `
