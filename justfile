@@ -39,3 +39,23 @@ test component="custodian":
 # Format and vet custodian.
 lint:
     cd custodian && gofmt -l . && go vet ./...
+
+# Canonically format all deed HCL in place.
+deed-fmt:
+    cd deed && terraform fmt -recursive
+
+# Check that all deed HCL is canonically formatted (CI gate; no writes).
+deed-fmt-check:
+    cd deed && terraform fmt -check -recursive
+
+# Validate a deed component's config; no backend or credentials needed (default: foundation).
+deed-validate component="foundation":
+    cd deed/{{component}} && terraform init -backend=false -input=false && terraform validate
+
+# Plan a deed component against the real S3 backend (needs SSO credentials).
+deed-plan component="foundation":
+    cd deed/{{component}} && terraform init -input=false && terraform plan -input=false
+
+# Apply a deed component (needs SSO credentials). CI never runs this.
+deed-apply component="foundation":
+    cd deed/{{component}} && terraform init -input=false && terraform apply -input=false

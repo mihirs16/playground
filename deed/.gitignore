@@ -1,0 +1,5 @@
+# tfvars carry real values (and, from ticket 02 on, bootstrap-secret values that
+# land in encrypted state). Never commit them; the *.example files are the
+# committed, value-free templates. *.tfstate and .terraform/ are ignored repo-wide.
+*.tfvars
+!*.tfvars.example
