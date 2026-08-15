@@ -27,34 +27,28 @@ follow the same shape — a flat root, its own `key`, no shared module.
 
 The backend references an S3 bucket that Terraform **never creates, imports, or
 manages** — a bucket managing the state that describes it is a bootstrap cycle.
-Create it by hand once, then only reference it. Run these against the account
-that owns the state (short-lived SSO credentials, see below):
+Create it by hand once, then only reference it. Run the script against the
+account that owns the state (short-lived SSO credentials, see below). It is
+idempotent — safe to re-run.
+
+Linux / macOS / Git Bash:
 
 ```sh
-BUCKET=deed-tfstate-playground-euw2
-REGION=eu-west-2
-
-aws s3api create-bucket \
-  --bucket "$BUCKET" \
-  --region "$REGION" \
-  --create-bucket-configuration LocationConstraint="$REGION"
-
-aws s3api put-bucket-versioning \
-  --bucket "$BUCKET" \
-  --versioning-configuration Status=Enabled
-
-aws s3api put-bucket-encryption \
-  --bucket "$BUCKET" \
-  --server-side-encryption-configuration \
-  '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"aws:kms"}}]}'
-
-aws s3api put-public-access-block \
-  --bucket "$BUCKET" \
-  --public-access-block-configuration \
-  BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+./scripts/bootstrap-state-bucket.sh
 ```
 
-The bucket name here must match the `bucket` in each component's `backend "s3"`
+Windows PowerShell:
+
+```powershell
+./scripts/bootstrap-state-bucket.ps1
+```
+
+Both default to bucket `deed-tfstate-playground-euw2` in `eu-west-2` and enable
+versioning, `aws:kms` encryption, and a full public-access block. Override with
+`BUCKET=… REGION=… ./scripts/bootstrap-state-bucket.sh` or
+`-Bucket … -Region …` on PowerShell.
+
+The bucket name must match the `bucket` in each component's `backend "s3"`
 block. State locking is native (`use_lockfile = true`) — no DynamoDB table.
 
 ## Credentials: SSO only
