@@ -16,12 +16,12 @@ parse bodies for URLs). The S3 edge is exercised through its injected fake.
 
 **Blocked by:** 03.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `POST /admin/v1/media` reserves a `pending` record and returns `{ upload_url, url, expires_at }`
-- [ ] Key uniqueness enforced at reserve; duplicate → `media_key_taken`
-- [ ] Omitted key → custodian generates a random kebab-case key
-- [ ] `confirm` does an S3 `HEAD` before flipping to `available`; missing bytes → not flipped
-- [ ] `GET /admin/v1/media` lists and searches; `DELETE` removes a record
-- [ ] Public `url` is extension-free; content-type carried in record metadata
-- [ ] Flow exercised end-to-end against the fake S3 (reserve → simulated upload → confirm → HEAD → available)
+- [x] `POST /admin/v1/media` reserves a `pending` record and returns `{ upload_url, url, expires_at }`
+- [x] Key uniqueness enforced at reserve; duplicate → `media_key_taken`
+- [x] Omitted key → custodian generates a random kebab-case key
+- [x] `confirm` does an S3 `HEAD` before flipping to `available`; missing bytes → not flipped
+- [x] `GET /admin/v1/media` lists and searches; `DELETE` removes a record
+- [x] Public `url` is extension-free; content-type carried in record metadata
+- [x] Flow exercised end-to-end against the fake S3 (reserve → simulated upload → confirm → HEAD → available)

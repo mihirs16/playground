@@ -36,6 +36,11 @@ type Config struct {
 
 	MediaBucket string
 
+	// MediaCDNBase is the public, domain-owned CDN origin media URLs are built
+	// under (e.g. https://cdn.mihirsingh.dev). A media record's public url is
+	// this base joined with its key — extension-free and never log-scoped.
+	MediaCDNBase string
+
 	// PollIntervals holds the poll cadence per integration source, each already
 	// resolved against the 5-minute default and any per-source override.
 	PollIntervals map[string]time.Duration
@@ -59,6 +64,7 @@ func Load() Config {
 		OTLPToken:      os.Getenv("CUSTODIAN_OTLP_TOKEN"),
 		CORSAllowlist:  splitList(os.Getenv("CUSTODIAN_CORS_ALLOWLIST")),
 		MediaBucket:    os.Getenv("CUSTODIAN_MEDIA_BUCKET"),
+		MediaCDNBase:   os.Getenv("CUSTODIAN_MEDIA_CDN_BASE"),
 		PollIntervals:  resolvePollIntervals(),
 		IntegrationKeys: map[string]string{
 			"steam":  os.Getenv("CUSTODIAN_STEAM_KEY"),
