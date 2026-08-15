@@ -1,10 +1,12 @@
-# 01 — Terraform foundation: Org member account, S3 state backend, CI plan gate
+# 01 — Terraform foundation: single-account wiring, S3 state backend, CI plan gate
 
 **What to build:** The ground `deed` stands on, provable with a clean plan and
-nothing above it. AWS Organizations is enabled with the playground living in its
-own member account, so a future second project becomes a new account rather than
-a cross-account migration of stateful resources. The Terraform state bucket for
-that account is bootstrapped **by hand once** (make-bucket + versioning +
+nothing above it. `deed` connects to the operator's existing single AWS account
+(under whatever org already owns it) via ambient SSO credentials — it does not
+enable an Organization or create a member account; that machinery is deferred
+until a real second project needs it (rule of three), and a flat single-account
+config forecloses nothing. The Terraform state bucket for that account is
+bootstrapped **by hand once** (make-bucket + versioning +
 encryption + block-public-access) and thereafter only *referenced* by the
 backend — never managed or imported by Terraform — with those imperative steps
 documented in `deed`'s README so the one deliberately-imperative gesture is
@@ -19,7 +21,7 @@ short-lived IAM Identity Center (SSO) credentials; the root `justfile` grows
 
 **Status:** in-review
 
-- [x] AWS Organizations enabled; the playground runs in its own member account — `deed/foundation/organizations.tf`
+- [x] `deed` connects to the operator's existing single account via ambient SSO creds; no Organization or member account is created — `deed/foundation/providers.tf`
 - [x] State bucket hand-bootstrapped (versioning + encryption + block-public-access) and referenced by the backend, never managed or imported; steps documented in `deed`'s README — `deed/README.md`, `deed/foundation/versions.tf`
 - [x] Flat in-repo HCL on an S3 backend with `use_lockfile`, scaffolded for the per-component state split (one root dir per component, own backend `key`)
 - [x] `.tfstate` and the bootstrap-secret tfvars are git-ignored; no state and no secret values in the repo — root `.gitignore` + `deed/.gitignore`

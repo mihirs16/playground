@@ -8,8 +8,15 @@ shared S3 backend.
 
 ```
 deed/
-  foundation/   AWS Organizations + the playground member account
+  foundation/   account wiring + backend scaffold (creates nothing)
 ```
+
+`deed` provisions into the operator's existing single AWS account via ambient
+SSO credentials — it does not enable an Organization or create a member account.
+`foundation` creates no resources; it wires the backend and reports which account
+the credentials resolved to (a wrong-account guard), so its `plan` is the clean,
+no-change proof that the S3 backend works. Enabling an Org and splitting accounts
+is deferred until a real second project needs it.
 
 Every component is a sibling directory with its own backend `key`
 (`<component>/terraform.tfstate`). This is the per-component state split: a
