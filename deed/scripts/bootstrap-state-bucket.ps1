@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Bootstrap the Terraform state bucket by hand — the one imperative gesture in
+  Bootstrap the Terraform state bucket by hand -- the one imperative gesture in
   deed. Terraform never creates, imports, or manages this bucket (a bucket that
   holds its own state is a bootstrap cycle); this script stands it up once.
 
@@ -32,7 +32,7 @@ try {
 } catch {}
 
 if ($exists) {
-  Write-Host "Bucket already exists — reapplying settings (idempotent)."
+  Write-Host "Bucket already exists -- reapplying settings (idempotent)."
 } else {
   aws s3api create-bucket `
     --bucket $Bucket `
@@ -50,7 +50,7 @@ Write-Host "Versioning enabled."
 
 aws s3api put-bucket-encryption `
   --bucket $Bucket `
-  --server-side-encryption-configuration '{\"Rules\":[{\"ApplyServerSideEncryptionByDefault\":{\"SSEAlgorithm\":\"aws:kms\"}}]}'
+  --server-side-encryption-configuration '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"aws:kms"}}]}'
 if ($LASTEXITCODE -ne 0) { throw "put-bucket-encryption failed" }
 Write-Host "Default encryption (aws:kms) enabled."
 
@@ -60,4 +60,4 @@ aws s3api put-public-access-block `
 if ($LASTEXITCODE -ne 0) { throw "put-public-access-block failed" }
 Write-Host "Public access blocked."
 
-Write-Host "Done. Bucket '$Bucket' is ready; it must match the 'bucket' in each component's backend block."
+Write-Host "Done. Bucket '$Bucket' is ready; it must match the 'bucket' in each component backend block."
