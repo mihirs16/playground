@@ -19,7 +19,7 @@ short-lived IAM Identity Center (SSO) credentials; the root `justfile` grows
 
 **Blocked by:** None — can start immediately.
 
-**Status:** in-review
+**Status:** done
 
 - [x] `deed` connects to the operator's existing single account via ambient SSO creds; no Organization or member account is created — `deed/foundation/providers.tf`
 - [x] State bucket hand-bootstrapped (versioning + encryption + block-public-access) and referenced by the backend, never managed or imported; steps documented in `deed`'s README — `deed/README.md`, `deed/foundation/versions.tf`
@@ -28,4 +28,4 @@ short-lived IAM Identity Center (SSO) credentials; the root `justfile` grows
 - [x] Apply is SSO-only (no static IAM access key on disk); `just` deed recipes exist — `deed-fmt` / `deed-validate` / `deed-plan` / `deed-apply`
 - [x] CI runs `fmt` / `validate` and never `apply` — `.github/workflows/deed.yml`. `plan` is kept local (`just deed-plan`) under SSO creds for now; CI does not touch the backend.
 
-**Human verification still required:** a clean `plan` is only demonstrable after the state bucket is hand-bootstrapped and SSO creds are available; `terraform`/OpenTofu was not installed in the authoring env, so `fmt`/`validate` were verified by hand, not run.
+**Human-verified:** state bucket `deed-tfstate-playground-euw2` hand-bootstrapped in `eu-west-2` (versioning + `aws:kms` + public-access block) via `deed/scripts/bootstrap-state-bucket.*`; `just deed-plan foundation` gave a clean no-resource-change plan under SSO profile `PowerUserAccess-136102212434`, and `just deed-apply foundation` completed `0 added, 0 changed, 0 destroyed` with state persisted to the S3 backend and the account/region outputs (`136102212434` / `eu-west-2`) confirming the correct account.
