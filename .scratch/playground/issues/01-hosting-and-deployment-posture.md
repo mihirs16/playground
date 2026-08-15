@@ -31,7 +31,7 @@ Cost matters here and is a legitimate input — this is a personal project, not 
 
 **Governing principle: self-manage the compute, rent the durability.** Self-manage things whose failure mode is "it's down for an hour and you learn something"; rent things whose failure mode is "the data is gone." The playground exists to learn by administering things, so a hand-run box is on-mission — but nothing irreplaceable should depend on a backup routine written by hand.
 
-Everything runs in **AWS, eu-west-1 (Ireland)**, on an account that already exists with IAM configured.
+Everything runs in **AWS, eu-west-2 (London)**, on an account that already exists with IAM configured.
 
 ### custodian
 
@@ -42,7 +42,7 @@ Everything runs in **AWS, eu-west-1 (Ireland)**, on an account that already exis
 
 ### Media and blobs
 
-**S3**, eu-west-1. The split is **blobs vs records**, not "blogs and media vs everything else":
+**S3**, eu-west-2. The split is **blobs vs records**, not "blogs and media vs everything else":
 
 - **Blobs** — uploaded images, the resume PDF. Large, opaque, served by URL, never queried. S3.
 - **Records** — blog title, slug, tags, publish date, draft flag, ordering, the markdown body itself, and the derived Steam/GitHub cache with its fetch timestamp. Small, and queried. SQLite.
@@ -77,7 +77,7 @@ The URL shape — path prefix versus subdomain — belongs to `09`.
 
 | Line | Monthly |
 |---|---|
-| EC2 `t4g.micro`, eu-west-1 | £5.20 |
+| EC2 `t4g.micro`, eu-west-2 | £5.20 |
 | Public IPv4 address | £2.90 |
 | EBS gp3, 20 GB | £1.25 |
 | S3 | £0.25 |
@@ -95,7 +95,7 @@ Egress is free to 100 GB/month across all of AWS, which this will never approach
 - **Managed Postgres** (Neon, Supabase free tier). Rents the thing worth self-managing, and puts a free-tier dependency — with idle-to-sleep behaviour — on the critical path of every blog page load.
 - **AWS Lightsail.** Looks like the cheap simple option, but Lightsail instances can't cleanly assume IAM roles, which throws away the entire reason for choosing AWS.
 - **Staying on Netlify for persona.** Free and already wired, but a second vendor, and it forfeits the single-distribution benefits above.
-- **eu-west-2 (London).** Roughly £1/mo more for ~10ms nobody will perceive.
+- **eu-west-1 (Ireland).** Roughly £1/mo cheaper, for ~10ms nobody will perceive.
 
 ### Constraints handed to blocked tickets
 

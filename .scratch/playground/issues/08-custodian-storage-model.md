@@ -15,7 +15,7 @@ The main fork:
 
 Then, separately:
 
-- ~~**Media** — object storage or local disk~~ **Settled by `01`: S3, eu-west-1.** What remains is the key scheme — content-addressed or path-based? — and whether originals are kept alongside derivatives.
+- ~~**Media** — object storage or local disk~~ **Settled by `01`: S3, eu-west-2.** What remains is the key scheme — content-addressed or path-based? — and whether originals are kept alongside derivatives.
 - **Derived-data cache** — do the cached Steam and GitHub payloads live in the same store, or somewhere ephemeral (in-memory, Redis)? They're regenerable, so durability requirements differ from authored content.
 - **Backups** — what's the actual recovery story for authored content, given the blogs are the thing you'd most hate to lose?
 

@@ -124,5 +124,5 @@ Recorded so nobody assumes these are decided:
 
 ## Settled since
 
-- **Where everything runs** — AWS, eu-west-1. See [ADR-0001](docs/adr/0001-hosting-and-deployment-posture.md).
+- **Where everything runs** — AWS, eu-west-2. See [ADR-0001](docs/adr/0001-hosting-and-deployment-posture.md).
 - **The authored-content domain model** — ticket `03` (above): logs, media, profile records, integrations, and the ubiquitous language for all three buckets.

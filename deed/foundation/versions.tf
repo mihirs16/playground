@@ -15,9 +15,9 @@ terraform {
   #
   # use_lockfile is native S3 locking (no DynamoDB table), requires Terraform 1.10+.
   backend "s3" {
-    bucket       = "deed-tfstate-playground-euw1"
+    bucket       = "deed-tfstate-playground-euw2"
     key          = "foundation/terraform.tfstate"
-    region       = "eu-west-1"
+    region       = "eu-west-2"
     encrypt      = true
     use_lockfile = true
   }

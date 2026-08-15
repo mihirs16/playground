@@ -1,7 +1,7 @@
 # Research: AWS pricing for mitigating a CloudFront "wallet DoS" on a small personal site
 
 **Date**: 2026-07-31
-**Question**: What does CloudFront, WAF, and AWS Budgets actually cost (eu-west-1 / Europe pricing), and what's the cheapest combination that protects a ~£10/month personal-site CloudFront distribution against someone hammering cached static assets to run up the bill?
+**Question**: What does CloudFront, WAF, and AWS Budgets actually cost (eu-west-2 / Europe pricing), and what's the cheapest combination that protects a ~£10/month personal-site CloudFront distribution against someone hammering cached static assets to run up the bill?
 
 ## Bottom line
 

@@ -22,7 +22,7 @@ You raised monitoring and alerting yourself when deciding that blogs load from c
 
 **Unblocked by `01`.** What it settled, and what it means here:
 
-- A **single hand-administered EC2 `t4g.micro`** in eu-west-1. No managed APM arrives by default — whatever exists, you install and run.
+- A **single hand-administered EC2 `t4g.micro`** in eu-west-2. No managed APM arrives by default — whatever exists, you install and run.
 - **CloudWatch is in reach** and coherent with everything else being AWS: logs, metrics, alarms, and SNS to a channel that reaches you. Worth weighing against Grafana/Prometheus on the box (more learning, more to maintain, and it dies when the box dies) and against hosted free tiers.
 - **A single instance is a single point of failure**, which raises the value of an *external* prober. A health check running on the box cannot tell you the box is gone.
 - **CloudFront sits in front of custodian**, so edge-cached blog responses may keep serving briefly after the origin dies. That softens the "custodian is down" question in the body — but it also means a naive uptime check hitting the public URL can pass while the origin is dead. Probe the origin, not just the edge.

@@ -26,13 +26,13 @@ An AWS account with IAM already configured was available. The owner is UK-based 
 
 ### Placement
 
-Everything runs in **AWS, eu-west-1 (Ireland)**.
+Everything runs in **AWS, eu-west-2 (London)**.
 
 | Concern | Decision |
 |---|---|
 | custodian runtime | One always-on **EC2 `t4g.micro`** — 2 vCPU Graviton (ARM64), 1 GB, Ubuntu. nginx reverse proxy, systemd unit, hand-administered. On-demand pricing |
 | custodian state | **SQLite in-process** on a 20 GB gp3 EBS volume, continuously replicated to S3 |
-| Media and blobs | **S3**, eu-west-1 |
+| Media and blobs | **S3**, eu-west-2 |
 | Credentials | **IAM instance profile** — no long-lived AWS credentials anywhere |
 | persona host | Private **S3 bucket + CloudFront** via origin access control |
 | Edge | **One CloudFront distribution fronting both** persona (S3 origin) and custodian (EC2 origin) |
@@ -68,7 +68,7 @@ An **AWS Budgets alert at £20/month** is a precondition of provisioning anythin
 
 **Keeping persona on Netlify.** Free and already wired. Rejected for a second vendor and for forfeiting the single-distribution benefits below.
 
-**eu-west-2 (London).** Roughly £1/month more for ~10ms nobody will perceive.
+**eu-west-1 (Ireland).** Roughly £1/month cheaper, for ~10ms nobody will perceive.
 
 ## Consequences
 
@@ -85,7 +85,7 @@ An **AWS Budgets alert at £20/month** is a precondition of provisioning anythin
 - **~£6/month more than the cheapest viable build.** Bought deliberately, for the credential story and the AWS exposure.
 - **The public IPv4 charge is ~30% of the instance bill** — an AWS-specific tax with no Hetzner equivalent.
 - **Cache invalidation on deploy** is now yours. Netlify did it for free; 1,000 invalidation paths/month are free, then $0.005 each.
-- **ACM certs for CloudFront must live in us-east-1** while everything else is in eu-west-1. A well-known gotcha that will bite exactly once.
+- **ACM certs for CloudFront must live in us-east-1** while everything else is in eu-west-2. A well-known gotcha that will bite exactly once.
 - **A single instance is a single point of failure.** No redundancy, and blogs load from it at runtime. This raises the value of *external* uptime probing — a check running on the box cannot report that the box is gone.
 - **Concurrent SQLite writes serialise.** Irrelevant at one author publishing a few times a month; it would matter if this were ever multi-tenant.
 - **State on the instance's disk pushes against immutable infrastructure.** Replacing the instance means moving or re-restoring the volume. Continuous replication to S3 makes it survivable, but the deploy model has to say so explicitly.

@@ -31,8 +31,8 @@ Create it by hand once, then only reference it. Run these against the account
 that owns the state (short-lived SSO credentials, see below):
 
 ```sh
-BUCKET=deed-tfstate-playground-euw1
-REGION=eu-west-1
+BUCKET=deed-tfstate-playground-euw2
+REGION=eu-west-2
 
 aws s3api create-bucket \
   --bucket "$BUCKET" \

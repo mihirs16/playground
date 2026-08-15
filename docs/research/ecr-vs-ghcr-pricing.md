@@ -1,13 +1,13 @@
 # ECR vs GHCR: pricing and auth for custodian image hosting
 
-Context: custodian (Go service) built as a Docker image in GitHub Actions, pulled by one long-lived EC2 t4g.micro in eu-west-1. Deciding where to host the image.
+Context: custodian (Go service) built as a Docker image in GitHub Actions, pulled by one long-lived EC2 t4g.micro in eu-west-2. Deciding where to host the image.
 
 Access date for all sources below: 2026-08-02.
 
 ## Amazon ECR pricing
 
 - Private repo storage: **$0.10/GB-month** beyond free tier. ([AWS ECR Pricing](https://aws.amazon.com/ecr/pricing/))
-- Same-region data transfer (EC2 <-> ECR within eu-west-1): **free ($0.00/GB)** — "Data transferred between Amazon ECR and other services within the same Region e.g., Amazon EC2 ... is free of charge." ([AWS ECR Pricing](https://aws.amazon.com/ecr/pricing/))
+- Same-region data transfer (EC2 <-> ECR within eu-west-2): **free ($0.00/GB)** — "Data transferred between Amazon ECR and other services within the same Region e.g., Amazon EC2 ... is free of charge." ([AWS ECR Pricing](https://aws.amazon.com/ecr/pricing/))
 - Cross-region transfer out of private repos: $0.09/GB (not applicable here — CI push and EC2 pull are same-region).
 - Data transfer *in* to private repos: free, always.
 - ECR private free tier: 500 MB-month storage free for the first 12 months as a new AWS customer (not permanent). ([AWS ECR Pricing](https://aws.amazon.com/ecr/pricing/))
@@ -22,7 +22,7 @@ Access date for all sources below: 2026-08-02.
 
 ## Realistic monthly cost estimate
 
-Workload: 1-3 images, each <100MB compressed, a handful of tags retained (say <1GB total storage), pulled a few times/day, all traffic same-region (EC2 in eu-west-1 pulling from ECR in eu-west-1, or EC2 pulling from GHCR over the public internet).
+Workload: 1-3 images, each <100MB compressed, a handful of tags retained (say <1GB total storage), pulled a few times/day, all traffic same-region (EC2 in eu-west-2 pulling from ECR in eu-west-2, or EC2 pulling from GHCR over the public internet).
 
 - **ECR**: ~1GB storage x $0.10/GB-month ≈ **$0.10/month** (~£0.08). Pull traffic is same-region EC2<->ECR and free regardless of volume. Total: **well under $0.50/month**, effectively ~$0.10/month.
 - **GHCR**: If images stay private and usage stays under the free personal quota (500MB storage / 1GB transfer), cost is **$0/month** in practice today, since GHCR bandwidth/storage isn't currently metered at all per GitHub's own docs. If GitHub does start billing per the standard Packages rates, a handful of daily pulls of <100MB images could push data transfer over 1GB/month (e.g. 3 images x 100MB x 3 pulls/day x 30 days ≈ 27GB/month), which at $0.50/GB would be **~$13-15/month** — an order of magnitude more expensive than ECR for the exact same workload.
