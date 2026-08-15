@@ -66,6 +66,13 @@ CI runs `fmt` and `validate` only (see `.github/workflows/deed.yml`) — both ne
 no AWS credentials. `plan` and `apply` are kept local, run by hand under SSO
 credentials; CI never touches the backend.
 
+> **GitHub Actions is paused repo-wide right now.** Actions is disabled at the
+> repository level (`repos/mihirs16/playground/actions/permissions` →
+> `enabled: false`), so no workflow — including `deed.yml` — runs on any branch
+> or PR. This is a deliberate hold: Terraform is planned and applied **locally
+> only** until CI is revisited. The `deed.yml` file is left in place but inert.
+> Re-enable with `gh api -X PUT repos/mihirs16/playground/actions/permissions -F enabled=true`.
+
 ## Recipes
 
 From the repo root:
