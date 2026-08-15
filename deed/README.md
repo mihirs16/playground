@@ -9,7 +9,25 @@ shared S3 backend.
 ```
 deed/
   foundation/   account wiring + backend scaffold (creates nothing)
+  compute/      custodian's box: EC2 + EBS, instance profile, SSM bootstrap secrets
 ```
+
+## `compute`
+
+custodian's box and the identity it boots with. An EC2 `t4g.micro` on a gp3
+root volume whose `user_data` installs Docker, the compose plugin, and the AWS
+CLI and stops at "Docker engine running" — plus the named Docker volume the
+SQLite file lives in. The box's only AWS identity is an IAM instance profile;
+there is no long-lived AWS key on it.
+
+The bootstrap secrets custodian reads at startup (admin-token hash, Grafana
+Cloud OTLP credential) are SSM `SecureString` parameters under a shared prefix,
+their values supplied via git-ignored tfvars — copy `compute/terraform.tfvars.example`
+to `compute/terraform.tfvars` and fill in real values. They land in encrypted
+state, accepted. The instance profile carries a **path-wildcard read** over that
+prefix, so adding a bootstrap secret later is a tfvars edit, not a policy edit.
+`deed` delivers authorization to read; the deploy wrapper does the SSM→env step
+on the box.
 
 `deed` provisions into the operator's existing single AWS account via ambient
 SSO credentials — it does not enable an Organization or create a member account.

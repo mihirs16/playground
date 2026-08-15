@@ -1,0 +1,7 @@
+# Copy to terraform.tfvars (git-ignored) and fill in real values. These land in
+# encrypted state — accepted per ticket 02. deed provisions the parameters and
+# the read grant; the deploy wrapper does the SSM->env injection on the box.
+bootstrap_secrets = {
+  "admin-token-hash" = "REPLACE_ME" # bcrypt/argon2 hash of custodian's admin token
+  "otlp-credential"  = "REPLACE_ME" # Grafana Cloud OTLP Authorization header value
+}
