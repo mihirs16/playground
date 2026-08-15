@@ -17,11 +17,13 @@ short-lived IAM Identity Center (SSO) credentials; the root `justfile` grows
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** in-review
 
-- [ ] AWS Organizations enabled; the playground runs in its own member account
-- [ ] State bucket hand-bootstrapped (versioning + encryption + block-public-access) and referenced by the backend, never managed or imported; steps documented in `deed`'s README
-- [ ] Flat in-repo HCL on an S3 backend with `use_lockfile`, scaffolded for the per-component state split
-- [ ] `.tfstate` and the bootstrap-secret tfvars are git-ignored; no state and no secret values in the repo
-- [ ] Apply is SSO-only (no static IAM access key on disk); `just` deed recipes exist
-- [ ] CI runs `fmt` / `validate` / `plan` against the real backend and never `apply`; a clean plan is demonstrable
+- [x] AWS Organizations enabled; the playground runs in its own member account — `deed/foundation/organizations.tf`
+- [x] State bucket hand-bootstrapped (versioning + encryption + block-public-access) and referenced by the backend, never managed or imported; steps documented in `deed`'s README — `deed/README.md`, `deed/foundation/versions.tf`
+- [x] Flat in-repo HCL on an S3 backend with `use_lockfile`, scaffolded for the per-component state split (one root dir per component, own backend `key`)
+- [x] `.tfstate` and the bootstrap-secret tfvars are git-ignored; no state and no secret values in the repo — root `.gitignore` + `deed/.gitignore`
+- [x] Apply is SSO-only (no static IAM access key on disk); `just` deed recipes exist — `deed-fmt` / `deed-validate` / `deed-plan` / `deed-apply`
+- [x] CI runs `fmt` / `validate` / `plan` against the real backend and never `apply` — `.github/workflows/deed.yml` (OIDC, no static key)
+
+**Human verification still required:** a clean `plan` is only demonstrable after the state bucket is hand-bootstrapped and the `DEED_PLAN_ROLE_ARN` OIDC role exists; `terraform`/OpenTofu was not installed in the authoring env, so `fmt`/`validate` were verified by hand, not run.
