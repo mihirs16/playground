@@ -24,6 +24,6 @@ short-lived IAM Identity Center (SSO) credentials; the root `justfile` grows
 - [x] Flat in-repo HCL on an S3 backend with `use_lockfile`, scaffolded for the per-component state split (one root dir per component, own backend `key`)
 - [x] `.tfstate` and the bootstrap-secret tfvars are git-ignored; no state and no secret values in the repo — root `.gitignore` + `deed/.gitignore`
 - [x] Apply is SSO-only (no static IAM access key on disk); `just` deed recipes exist — `deed-fmt` / `deed-validate` / `deed-plan` / `deed-apply`
-- [x] CI runs `fmt` / `validate` / `plan` against the real backend and never `apply` — `.github/workflows/deed.yml` (OIDC, no static key)
+- [x] CI runs `fmt` / `validate` and never `apply` — `.github/workflows/deed.yml`. `plan` is kept local (`just deed-plan`) under SSO creds for now; CI does not touch the backend.
 
-**Human verification still required:** a clean `plan` is only demonstrable after the state bucket is hand-bootstrapped and the `DEED_PLAN_ROLE_ARN` OIDC role exists; `terraform`/OpenTofu was not installed in the authoring env, so `fmt`/`validate` were verified by hand, not run.
+**Human verification still required:** a clean `plan` is only demonstrable after the state bucket is hand-bootstrapped and SSO creds are available; `terraform`/OpenTofu was not installed in the authoring env, so `fmt`/`validate` were verified by hand, not run.

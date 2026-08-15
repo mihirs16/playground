@@ -61,9 +61,9 @@ aws sso login --profile <your-sso-profile>
 export AWS_PROFILE=<your-sso-profile>
 ```
 
-CI never applies. It runs `fmt` / `validate` / `plan` only (see
-`.github/workflows/deed.yml`), so a drifted or broken config fails the plan gate
-before it can merge.
+CI runs `fmt` and `validate` only (see `.github/workflows/deed.yml`) — both need
+no AWS credentials. `plan` and `apply` are kept local, run by hand under SSO
+credentials; CI never touches the backend.
 
 ## Recipes
 

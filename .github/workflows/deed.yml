@@ -11,16 +11,8 @@ on:
       - "deed/**"
       - ".github/workflows/deed.yml"
 
-# OIDC into a short-lived role — no static IAM access key ever reaches CI, the
-# same posture apply has on the laptop. plan needs read access to the real
-# backend; it never applies.
-permissions:
-  id-token: write
-  contents: read
-
-env:
-  AWS_REGION: eu-west-1
-
+# fmt and validate need no AWS credentials. plan is deliberately kept local
+# (`just deed-plan`) under short-lived SSO creds — CI never touches the backend.
 jobs:
   deed:
     runs-on: ubuntu-latest
@@ -40,17 +32,4 @@ jobs:
             echo "== validate ${dir} =="
             terraform -chdir="${dir}" init -backend=false -input=false
             terraform -chdir="${dir}" validate
-          done
-
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.DEED_PLAN_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: plan
-        run: |
-          for dir in deed/*/; do
-            echo "== plan ${dir} =="
-            terraform -chdir="${dir}" init -input=false
-            terraform -chdir="${dir}" plan -input=false -lock=false
           done
