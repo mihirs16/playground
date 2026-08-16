@@ -84,14 +84,15 @@ table. The secrets `deed` provisions:
 | SSM parameter leaf (= env var) | Value |
 |---|---|
 | `CUSTODIAN_ADMIN_TOKEN_HASH` | hex-encoded SHA-256 of the admin bearer token |
+| `CUSTODIAN_OTLP_ENDPOINT` | base `.../otlp` gateway URL (non-secret, co-located here so the one SSM→env path delivers it; custodian exports nothing when it is unset) |
 | `CUSTODIAN_OTLP_AUTHORIZATION` | full `Authorization` header value, e.g. `Basic <base64(instanceID:token)>` |
 | `CUSTODIAN_STEAM_KEY` | Steam Web API key |
 | `CUSTODIAN_GITHUB_PAT` | GitHub PAT |
 
-The **non-secret** runtime config custodian also needs is *not* stored in `deed`
-— the deploy wrapper sets it directly: `CUSTODIAN_OTLP_ENDPOINT` (base `.../otlp`
-gateway URL), `CUSTODIAN_CORS_ALLOWLIST`, `CUSTODIAN_MEDIA_BUCKET`,
-`CUSTODIAN_MEDIA_CDN_BASE`, and the optional `CUSTODIAN_ADDR` / `CUSTODIAN_DB_PATH`.
+The remaining **non-secret** runtime config custodian needs is *not* stored in
+`deed` — the deploy wrapper/compose set it directly: `CUSTODIAN_CORS_ALLOWLIST`,
+`CUSTODIAN_MEDIA_BUCKET`, `CUSTODIAN_MEDIA_CDN_BASE`, and the optional
+`CUSTODIAN_ADDR` / `CUSTODIAN_DB_PATH`.
 
 `deed` provisions into the operator's existing single AWS account via ambient
 SSO credentials — it does not enable an Organization or create a member account.
