@@ -12,8 +12,8 @@ Litestream backup have real homes.
 
 **Blocked by:** 02.
 
-**Status:** ready-for-agent
+**Status:** implemented, awaiting human apply
 
-- [ ] Media bucket and SQLite-backup bucket provisioned
-- [ ] `prevent_destroy = true` present on both data buckets, independent of state layout
-- [ ] Instance profile granted the read/write access needed for media and SQLite backup
+- [x] Media bucket and SQLite-backup bucket provisioned
+- [x] `prevent_destroy = true` present on both data buckets, independent of state layout
+- [x] Instance profile granted the read/write access needed for media and SQLite backup

@@ -18,6 +18,16 @@ output "ecr_repository_url" {
   value       = aws_ecr_repository.custodian.repository_url
 }
 
+output "media_bucket_name" {
+  description = "Media bucket name; the deploy wrapper sets it as CUSTODIAN_MEDIA_BUCKET."
+  value       = aws_s3_bucket.media.bucket
+}
+
+output "sqlite_backup_bucket_name" {
+  description = "SQLite-backup bucket name; Litestream's replication target."
+  value       = aws_s3_bucket.sqlite_backup.bucket
+}
+
 output "ssm_bootstrap_prefix" {
   description = "Prefix the deploy wrapper reads bootstrap secrets from."
   value       = var.ssm_bootstrap_prefix

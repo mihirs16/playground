@@ -9,7 +9,7 @@ shared S3 backend.
 ```
 deed/
   foundation/   account wiring + backend scaffold (creates nothing)
-  compute/      custodian's box: EC2 + EBS, instance profile, SSM bootstrap secrets, ECR registry
+  compute/      custodian's box: EC2 + EBS, instance profile, SSM bootstrap secrets, ECR registry, data buckets
 ```
 
 ## `compute`
@@ -37,6 +37,19 @@ layer/image reads plus the registry-level `ecr:GetAuthorizationToken` (which can
 be resource-scoped). A lifecycle policy keeps image storage flat as versions
 accumulate — it retains the most recent `ecr_image_retention_count` images and
 expires untagged ones after a day.
+
+### The data buckets
+
+Two S3 buckets are the durable homes ADR-0001 says to rent: the **media bucket**
+custodian serves uploads from and the **SQLite-backup bucket** Litestream
+replicates the database to. Both are fully private (neither is reached directly —
+media flows through the custodian origin, the backup is internal) and both carry
+`lifecycle { prevent_destroy = true }`, so no component destroy can silently take
+unrecoverable data regardless of how `deed`'s state is later split. The safety
+invariant lives on the resource, not on the state layout. The instance profile
+carries a read/write grant (`GetObject`/`PutObject`/`DeleteObject` plus
+`ListBucket`) over both, covering custodian's media reserve/confirm flow and
+Litestream's backup.
 
 ### The env-var contract
 

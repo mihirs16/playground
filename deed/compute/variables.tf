@@ -34,6 +34,18 @@ variable "ecr_image_retention_count" {
   default     = 10
 }
 
+variable "media_bucket_name" {
+  description = "S3 bucket custodian serves media from and broom writes uploads to. Globally unique; carries prevent_destroy since lost media is unrecoverable."
+  type        = string
+  default     = "custodian-media-playground-euw2"
+}
+
+variable "sqlite_backup_bucket_name" {
+  description = "S3 bucket Litestream replicates the SQLite file to. Globally unique; carries prevent_destroy since it is the only off-box copy of custodian's records."
+  type        = string
+  default     = "custodian-sqlite-backup-playground-euw2"
+}
+
 variable "bootstrap_secrets" {
   description = "Startup secrets custodian reads from the environment. Each key is the exact env var name custodian expects (custodian/internal/config/config.go) and becomes the SSM parameter leaf under ssm_bootstrap_prefix, so the deploy wrapper's SSM->env step exports each leaf verbatim with no mapping table. Supplied via git-ignored tfvars; lands in encrypted state, accepted."
   type        = map(string)
