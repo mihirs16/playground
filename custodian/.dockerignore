@@ -1,0 +1,4 @@
+# The image wraps only the prebuilt release binary; keep the build context to
+# that one file so no source, test data, or local SQLite db is ever sent.
+*
+!custodian
