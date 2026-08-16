@@ -51,6 +51,13 @@ func (f *FakeObjectStore) HeadBucket(_ context.Context) error {
 	return f.BucketErr
 }
 
+func (f *FakeObjectStore) DeleteObject(_ context.Context, key string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	delete(f.present, key)
+	return nil
+}
+
 // PutBytes simulates broom completing a presigned upload, so a later HeadObject
 // reports the key as present.
 func (f *FakeObjectStore) PutBytes(key string) {

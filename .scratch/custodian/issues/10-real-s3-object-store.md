@@ -37,5 +37,18 @@ URL → confirm → `available`).
   SigV4 presigning does not bind content-type into the signature by design, and
   the reference fake never enforced it either.
 - Seam-tested in `internal/edges/s3_test.go` against a local HTTP stand-in with
-  static test credentials, mirroring `otlp_test.go`. Interface + fake untouched.
+  static test credentials, mirroring `otlp_test.go`.
 - The final box remains for an operator smoke against the real bucket.
+
+### Media byte cleanup (folded in)
+
+The existing `DELETE /admin/v1/media/{key}` (ticket 04) only removed custodian's
+DB record; its comment said the bytes were "broom's to clean up". But broom holds
+no S3 credentials — custodian is the only credential holder — so those bytes could
+never be removed, and every delete or abandoned reservation orphaned S3 objects.
+
+Rather than a background reaper, cleanup stays broom/operator-driven: `DELETE` now
+removes the object bytes too. Added `ObjectStore.DeleteObject` (real + fake), and
+`DeleteMedia` deletes the object first (S3 delete is idempotent, so a failed record
+delete is safe to retry) then the record. A stale pending reservation is cleaned by
+deleting it like any other media.

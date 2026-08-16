@@ -223,7 +223,10 @@ func TestListAndSearchMedia(t *testing.T) {
 	}
 }
 
-func TestDeleteMediaRemovesRecord(t *testing.T) {
+// TestDeleteMediaRemovesRecordAndBytes proves delete cleans up both sides: the
+// record is gone, and the object bytes are deleted from the bucket — the only
+// path to removing them, since broom holds no S3 credentials.
+func TestDeleteMediaRemovesRecordAndBytes(t *testing.T) {
 	h := newHarness(t)
 
 	reserve := h.requestJSON(t, http.MethodPost, "/admin/v1/media", adminAuth(), map[string]any{
@@ -231,6 +234,7 @@ func TestDeleteMediaRemovesRecord(t *testing.T) {
 		"content_type": "image/png",
 	})
 	reserve.Body.Close()
+	h.objectStore(t).PutBytes("doomed-asset")
 
 	del := h.request(t, http.MethodDelete, "/admin/v1/media/doomed-asset", adminAuth())
 	defer del.Body.Close()
@@ -239,6 +243,13 @@ func TestDeleteMediaRemovesRecord(t *testing.T) {
 	}
 	if _, ok := h.mediaState(t, "doomed-asset"); ok {
 		t.Fatal("media record still present after delete")
+	}
+	present, err := h.objectStore(t).HeadObject(t.Context(), "doomed-asset")
+	if err != nil {
+		t.Fatalf("head after delete: %v", err)
+	}
+	if present {
+		t.Fatal("object bytes still present after delete; broom cannot clean these up itself")
 	}
 }
 

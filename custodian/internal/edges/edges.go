@@ -12,13 +12,15 @@ import (
 )
 
 // ObjectStore is custodian's view of S3: presign an upload so bytes go straight
-// from broom to the bucket, HEAD an object to confirm those bytes landed, and
-// HEAD the bucket as one input to the health gauge. Custodian is never on the
-// byte path.
+// from broom to the bucket, HEAD an object to confirm those bytes landed, HEAD
+// the bucket as one input to the health gauge, and delete an object on a media
+// delete. Custodian is never on the byte path for uploads, but it is the only
+// holder of S3 credentials — so removing bytes is custodian's job, not broom's.
 type ObjectStore interface {
 	PresignPut(ctx context.Context, key, contentType string, expires time.Duration) (url string, err error)
 	HeadObject(ctx context.Context, key string) (exists bool, err error)
 	HeadBucket(ctx context.Context) error
+	DeleteObject(ctx context.Context, key string) error
 }
 
 // FetchResult is one poll of a third-party source. When NotModified is true the

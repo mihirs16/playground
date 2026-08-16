@@ -100,6 +100,43 @@ func TestS3HeadObjectReflectsPresence(t *testing.T) {
 	}
 }
 
+// DeleteObject removes the bytes from the bucket: it issues a DELETE against the
+// key so custodian — the only holder of S3 credentials — can clean up media broom
+// can never reach directly. A failure surfaces rather than silently orphaning.
+func TestS3DeleteObjectRemovesTheKey(t *testing.T) {
+	var (
+		gotMethod string
+		gotPath   string
+	)
+	sink := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		gotPath = r.URL.Path
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer sink.Close()
+
+	if err := testStore("media-bucket", sink.URL).DeleteObject(context.Background(), "hero-shot"); err != nil {
+		t.Fatalf("delete object: %v", err)
+	}
+	if gotMethod != http.MethodDelete {
+		t.Fatalf("method = %q, want DELETE", gotMethod)
+	}
+	if !strings.HasSuffix(gotPath, "/hero-shot") {
+		t.Fatalf("delete path %q missing key", gotPath)
+	}
+}
+
+func TestS3DeleteObjectSurfacesFailure(t *testing.T) {
+	sink := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer sink.Close()
+
+	if err := testStore("media-bucket", sink.URL).DeleteObject(context.Background(), "hero-shot"); err == nil {
+		t.Fatal("delete against a failing bucket returned nil, want the failure surfaced")
+	}
+}
+
 // HeadBucket reaches the real bucket: a reachable bucket is a nil error (a healthy
 // input to the gauge), and an unreachable one surfaces the error so the gauge can
 // go degraded.

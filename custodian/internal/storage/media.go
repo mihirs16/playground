@@ -135,8 +135,8 @@ func (db *DB) SetMediaAvailable(ctx context.Context, key string) (Media, error) 
 }
 
 // DeleteMedia removes the record at key, reporting ErrMediaNotFound when there
-// is none. It deletes only custodian's record; the object bytes are broom's to
-// clean up.
+// is none. It deletes only custodian's record; the handler deletes the object
+// bytes separately through the object store.
 func (db *DB) DeleteMedia(ctx context.Context, key string) error {
 	result, err := db.ExecContext(ctx, "DELETE FROM media WHERE key = ?", key)
 	if err != nil {

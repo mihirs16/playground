@@ -85,6 +85,17 @@ func (s *s3Store) HeadBucket(ctx context.Context) error {
 	return err
 }
 
+// DeleteObject removes the key's bytes from the bucket. S3 delete is idempotent —
+// deleting an absent key succeeds — so this is safe to call whether or not broom
+// ever completed the upload.
+func (s *s3Store) DeleteObject(ctx context.Context, key string) error {
+	_, err := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(key),
+	})
+	return err
+}
+
 // isNotFound recognises S3's two shapes of "no such object": the modelled
 // NotFound error, and a bare 404 HEAD response the service returns without an
 // error code.

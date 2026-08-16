@@ -53,6 +53,7 @@ func (e errObjectStore) PresignPut(context.Context, string, string, time.Duratio
 }
 func (e errObjectStore) HeadObject(context.Context, string) (bool, error) { return false, e.err }
 func (e errObjectStore) HeadBucket(context.Context) error                 { return e.err }
+func (e errObjectStore) DeleteObject(context.Context, string) error       { return e.err }
 
 type httpSourceClient struct{}
 

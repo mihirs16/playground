@@ -136,9 +136,18 @@ func (h *handlers) GetMedia(w http.ResponseWriter, r *http.Request, key api.Medi
 	writeJSON(w, http.StatusOK, toMedia(record))
 }
 
-// DeleteMedia removes a media record. Any pre-delete reference scan is broom's
-// courtesy — custodian does not parse log bodies for the url.
+// DeleteMedia removes both the object bytes and the record, since custodian holds
+// the only S3 credentials and broom can never delete the bytes itself. The object
+// is deleted first: S3 delete is idempotent, so a failed record delete leaves the
+// call safe to retry rather than orphaning bytes behind a vanished record. Any
+// pre-delete reference scan is broom's courtesy — custodian does not parse log
+// bodies for the url.
 func (h *handlers) DeleteMedia(w http.ResponseWriter, r *http.Request, key api.MediaKey) {
+	if err := h.edges.ObjectStore.DeleteObject(r.Context(), key); err != nil {
+		writeProblem(w, http.StatusInternalServerError, "internal", "could not delete the uploaded object")
+		return
+	}
+
 	err := h.db.DeleteMedia(r.Context(), key)
 	if errors.Is(err, storage.ErrMediaNotFound) {
 		writeProblem(w, http.StatusNotFound, "not_found", "no media with that key")
