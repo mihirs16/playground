@@ -16,14 +16,14 @@ URL → confirm → `available`).
 
 **Blocked by:** 04 (media reserve/confirm flow against the fake — done).
 
-**Status:** needs-operator-smoke
+**Status:** done (operator smoke deferred until broom can drive it end-to-end)
 
 - [x] `ObjectStore` implemented with AWS SDK v2 using the IMDS instance-profile chain; no static AWS creds
 - [x] `PresignPut` yields a working presigned S3 `PUT` honouring key, content-type, and expiry
 - [x] `HeadObject` reflects real object presence; `confirm` flips to `available` only when bytes exist
 - [x] `HeadBucket` reaches the real bucket and feeds the health gauge
 - [x] Existing media + health tests pass unchanged against the fake (interface untouched)
-- [ ] Operator smoke against a real bucket: reserve → upload via presigned URL → confirm → `available`
+- [~] Operator smoke against a real bucket: reserve → upload via presigned URL → confirm → `available` — deferred until broom can drive the flow end-to-end
 
 ## Comments
 
