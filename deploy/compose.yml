@@ -16,9 +16,23 @@ name: custodian
 services:
   # The API. A pure static binary reading everything from os.Getenv; the image
   # bakes in nothing (custodian/Dockerfile, custodian/09).
+  # deed creates the named volume root-owned, but custodian runs unprivileged
+  # (uid 65532, the distroless nonroot base) and so can't create its SQLite file
+  # under /data — SQLite reports CANTOPEN. Hand the volume to that uid once, then
+  # exit; custodian waits for this to complete before it starts.
+  volume-init:
+    image: busybox:1.36
+    command: ["chown", "-R", "65532:65532", "/data"]
+    volumes:
+      - custodian-data:/data
+
   custodian:
     image: ${CUSTODIAN_IMAGE:?deploy wrapper must set CUSTODIAN_IMAGE to the ECR image ref}
     restart: unless-stopped
+    user: "65532:65532"
+    depends_on:
+      volume-init:
+        condition: service_completed_successfully
     env_file:
       - /run/custodian.env
     environment:

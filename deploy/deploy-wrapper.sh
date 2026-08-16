@@ -62,5 +62,11 @@ aws ecr get-login-password --region "$AWS_REGION" \
 
 # The rollout itself. compose reads the secrets from env_file and the non-secret
 # ${...} values from this process's environment.
+#
+# --force-recreate because nginx and litestream take their config from bind-
+# mounted files (nginx.conf, litestream.yml): compose sees no change to those
+# service definitions when only the file content changes, so without it a
+# redeploy would silently keep the old config. It also re-reads the env_file, so
+# a rotated secret takes effect.
 docker compose pull
-docker compose up -d --remove-orphans
+docker compose up -d --remove-orphans --force-recreate

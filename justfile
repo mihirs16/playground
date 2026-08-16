@@ -73,12 +73,14 @@ deploy-custodian tag="latest":
         "export CUSTODIAN_SQLITE_BACKUP_BUCKET='$backup_bucket'" \
         "export AWS_REGION='$region'" \
         "bash /opt/custodian/deploy-wrapper.sh")"; \
+    remote_b64="$(printf '%s' "$remote" | base64 | tr -d '\n')"; \
+    params="$(printf '{"commands":["echo %s | base64 -d | bash"]}' "$remote_b64")"; \
     command_id="$(aws ssm send-command \
         --region "$region" \
         --instance-ids "$instance" \
         --document-name AWS-RunShellScript \
         --comment "custodian rollout {{tag}}" \
-        --parameters commands="$remote" \
+        --parameters "$params" \
         --query 'Command.CommandId' --output text)"; \
     echo "SSM command $command_id sent to $instance ({{tag}}); waiting for it to finish..."; \
     aws ssm wait command-executed --region "$region" --command-id "$command_id" --instance-id "$instance" || true; \
