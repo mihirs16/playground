@@ -46,6 +46,18 @@ variable "sqlite_backup_bucket_name" {
   default     = "custodian-sqlite-backup-playground-euw2"
 }
 
+variable "zone_name" {
+  description = "The apex of the Route 53 hosted zone deed creates. Registration stays at Squarespace; the zone's name servers (route53_name_servers output) must be delegated there before an apply can complete certificate validation. The apex itself is persona's (the front-facing website); custodian is a subdomain under it."
+  type        = string
+  default     = "mihirsingh.dev"
+}
+
+variable "custodian_domain_name" {
+  description = "The domain custodian is served at through the edge — the distribution alias and the ACM certificate subject. A subdomain of zone_name (its records live in that hosted zone)."
+  type        = string
+  default     = "custodian.mihirsingh.dev"
+}
+
 variable "bootstrap_secrets" {
   description = "Startup secrets custodian reads from the environment. Each key is the exact env var name custodian expects (custodian/internal/config/config.go) and becomes the SSM parameter leaf under ssm_bootstrap_prefix, so the deploy wrapper's SSM->env step exports each leaf verbatim with no mapping table. Supplied via git-ignored tfvars; lands in encrypted state, accepted."
   type        = map(string)

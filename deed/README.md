@@ -9,7 +9,7 @@ shared S3 backend.
 ```
 deed/
   foundation/   account wiring + backend scaffold (creates nothing)
-  compute/      custodian's box: EC2 + EBS, instance profile, SSM bootstrap secrets, ECR registry, data buckets
+  compute/      custodian's box: EC2 + EBS, instance profile, SSM bootstrap secrets, ECR registry, data buckets, the edge (CloudFront + ACM + Route 53)
 ```
 
 ## `compute`
@@ -50,6 +50,29 @@ invariant lives on the resource, not on the state layout. The instance profile
 carries a read/write grant (`GetObject`/`PutObject`/`DeleteObject` plus
 `ListBucket`) over both, covering custodian's media reserve/confirm flow and
 Litestream's backup.
+
+### The edge
+
+The single CloudFront distribution the whole playground fronts, with the
+custodian box as its API origin (ADR-0001). Viewers reach custodian over HTTPS at
+`var.custodian_domain_name` (`custodian.mihirsingh.dev`); the apex is persona's
+front-facing website, added in ticket 06. The distribution's public certificate is
+issued through **ACM in us-east-1** — the only region CloudFront reads viewer
+certificates from — so AWS holds the private key and no certificate material lands
+on disk. The default cache behavior forwards the whole viewer request except the
+Host header and does not cache, so custodian's auth and cookies work through the
+edge; persona's cacheable `/logs/` behavior is added in ticket 06.
+
+The box origin needs a durable address, so it carries an **Elastic IP** with an
+`origin.<custodian_domain_name>` A record; the edge<->origin hop is plain HTTP,
+locked to CloudFront alone by pinning the box's security-group ingress to the
+`com.amazonaws.global.cloudfront.origin-facing` managed prefix list.
+
+DNS is a **Route 53 hosted zone** for `var.zone_name` (the apex — custodian and
+persona both live under it); registration stays at Squarespace. **The zone's name
+servers (`route53_name_servers` output) must be set at Squarespace before an apply
+can finish** — ACM's DNS validation records resolve only once delegation is live,
+and `aws_acm_certificate_validation` blocks until they do.
 
 ### The env-var contract
 
