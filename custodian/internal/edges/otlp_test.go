@@ -1,18 +1,25 @@
 package edges
 
 import (
+	"bytes"
 	"context"
+	"errors"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"go.opentelemetry.io/otel"
 )
 
 // The real OTLP telemetry emits the health gauge over OTLP/HTTP to the
-// configured endpoint, carrying the export token as a bearer header — exercised
-// here against a local sink that stands in for a live backend.
-func TestOTLPTelemetryExportsGaugeWithToken(t *testing.T) {
+// configured endpoint, carrying the configured Authorization header verbatim —
+// exercised here against a local sink that stands in for a live backend.
+func TestOTLPTelemetryExportsGaugeWithAuthorizationHeader(t *testing.T) {
 	var (
 		mu      sync.Mutex
 		hits    int
@@ -28,7 +35,9 @@ func TestOTLPTelemetryExportsGaugeWithToken(t *testing.T) {
 	}))
 	defer sink.Close()
 
-	telemetry, err := buildOTLPTelemetry(context.Background(), sink.URL, "export-secret")
+	const authorization = "Basic MTIzNDU2OmdsYy1yZWFsLXRva2Vu"
+
+	telemetry, err := buildOTLPTelemetry(context.Background(), sink.URL, authorization, discardLogger())
 	if err != nil {
 		t.Fatalf("build otlp telemetry: %v", err)
 	}
@@ -47,15 +56,18 @@ func TestOTLPTelemetryExportsGaugeWithToken(t *testing.T) {
 	if hits == 0 {
 		t.Fatal("sink received no OTLP export")
 	}
-	if gotAuth != "Bearer export-secret" {
-		t.Fatalf("authorization = %q, want %q", gotAuth, "Bearer export-secret")
+	if gotAuth != authorization {
+		t.Fatalf("authorization = %q, want %q (sent verbatim)", gotAuth, authorization)
 	}
 }
 
-// An empty endpoint yields a no-op sink rather than a boot failure, so a missing
-// secret surfaces as absent telemetry.
+// An empty endpoint yields a no-op sink and no error: telemetry is deliberately
+// off, so a missing secret surfaces as absent telemetry, not a boot failure.
 func TestOTLPTelemetryNoEndpointIsNoop(t *testing.T) {
-	telemetry := newOTLPTelemetry("", "")
+	telemetry, err := newOTLPTelemetry("", "", discardLogger())
+	if err != nil {
+		t.Fatalf("empty endpoint returned error: %v", err)
+	}
 	if _, ok := telemetry.(noopTelemetry); !ok {
 		t.Fatalf("telemetry = %T, want noopTelemetry", telemetry)
 	}
@@ -63,4 +75,33 @@ func TestOTLPTelemetryNoEndpointIsNoop(t *testing.T) {
 	if err := telemetry.Shutdown(context.Background()); err != nil {
 		t.Fatalf("noop shutdown: %v", err)
 	}
+}
+
+// A misauthenticated export — the 401 a real Grafana Cloud stack returns for a
+// bad credential — must not be silently swallowed. The OTel SDK reports export
+// failures on its periodic loop through the process error handler; custodian
+// installs one that routes them to its own logger, so a configured-but-rejected
+// exporter is loud and distinguishable from a quiet no-op sink, not buried in
+// the SDK's internal log.
+func TestOTLPTelemetryExportErrorsRouteToLogger(t *testing.T) {
+	var logs bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&logs, &slog.HandlerOptions{Level: slog.LevelError}))
+
+	telemetry, err := buildOTLPTelemetry(context.Background(), "http://localhost:0", "Basic wrong-credential", logger)
+	if err != nil {
+		t.Fatalf("build otlp telemetry: %v", err)
+	}
+	defer telemetry.Shutdown(context.Background())
+
+	// Stand in for a periodic-export failure (the shape a Grafana Cloud 401 takes
+	// once the providers are up): the SDK hands it to the process error handler.
+	otel.Handle(errors.New("401 Unauthorized"))
+
+	if !strings.Contains(logs.String(), "OTLP export failed") {
+		t.Fatalf("export error was not surfaced through custodian's logger; logs = %q", logs.String())
+	}
+}
+
+func discardLogger() *slog.Logger {
+	return slog.New(slog.NewJSONHandler(io.Discard, nil))
 }

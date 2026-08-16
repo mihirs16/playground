@@ -26,10 +26,10 @@ custodian settles on is what the deploy wrapper injects from SSM.
 
 **Blocked by:** 07.
 
-**Status:** ready-for-agent
+**Status:** awaiting-live-verification
 
-- [ ] custodian authenticates to Grafana Cloud's OTLP gateway with the scheme it expects (Basic `instanceID:token`), replacing the hardcoded `Bearer`
-- [ ] A misconfigured/misauthenticated exporter is distinguishable from "no endpoint configured" — the silent no-op fallback no longer hides an auth failure
-- [ ] Empty-endpoint → no-op behaviour is preserved
-- [ ] The env-var contract is reconciled with `deed`'s `otlp-credential` bootstrap secret and documented
+- [x] custodian authenticates to Grafana Cloud's OTLP gateway with the scheme it expects (Basic `instanceID:token`), replacing the hardcoded `Bearer` — via scheme-agnostic verbatim `Authorization` header from `CUSTODIAN_OTLP_AUTHORIZATION`
+- [x] A misconfigured/misauthenticated exporter is distinguishable from "no endpoint configured" — the silent no-op fallback no longer hides an auth failure — build failure returns an error (logged in `real.go`); runtime 401s route through custodian's logger via the OTel error handler
+- [x] Empty-endpoint → no-op behaviour is preserved
+- [x] The env-var contract is reconciled with `deed`'s `otlp-credential` bootstrap secret and documented
 - [ ] **Deliverable — local verification against a real stack:** run custodian locally pointed at an actual Grafana Cloud OTLP endpoint with a real token, and confirm the `health` gauge (and logs/traces) arrive in Grafana Cloud — i.e. the export is observed end-to-end, not just asserted through the fake sink

@@ -38,7 +38,7 @@ func run(logger *slog.Logger) error {
 	}
 	defer db.Close()
 
-	edgeSet := edges.Real(cfg)
+	edgeSet := edges.Real(cfg, logger)
 	srv := server.New(cfg, db, edgeSet, logger)
 
 	httpServer := &http.Server{

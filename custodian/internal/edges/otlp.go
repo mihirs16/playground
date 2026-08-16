@@ -3,6 +3,7 @@ package edges
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
@@ -26,32 +27,42 @@ type otlpTelemetry struct {
 	providers []func(context.Context) error
 }
 
-// newOTLPTelemetry stands the three providers up against the endpoint, wiring
-// the export token as a bearer header. endpoint and token are read from the
-// environment at startup; their source is opaque to custodian. An empty
-// endpoint, or an exporter that cannot be built, yields a no-op sink so a
-// missing secret surfaces as absent telemetry rather than a boot failure.
-func newOTLPTelemetry(endpoint, token string) Telemetry {
+// newOTLPTelemetry stands the three providers up against the endpoint, sending
+// the configured Authorization header verbatim (see config.OTLPAuthorization).
+//
+// Misconfiguration must never masquerade as "telemetry off". An empty endpoint
+// is telemetry deliberately disabled: a no-op sink and no error. A non-empty
+// endpoint whose exporter cannot be built returns a no-op sink so the box still
+// boots, plus a non-nil error the caller logs.
+func newOTLPTelemetry(endpoint, authorization string, logger *slog.Logger) (Telemetry, error) {
 	if endpoint == "" {
-		return noopTelemetry{}
+		return noopTelemetry{}, nil
 	}
 
-	telemetry, err := buildOTLPTelemetry(context.Background(), endpoint, token)
+	telemetry, err := buildOTLPTelemetry(context.Background(), endpoint, authorization, logger)
 	if err != nil {
-		return noopTelemetry{}
+		return noopTelemetry{}, err
 	}
-	return telemetry
+	return telemetry, nil
 }
 
-func buildOTLPTelemetry(ctx context.Context, endpoint, token string) (*otlpTelemetry, error) {
+func buildOTLPTelemetry(ctx context.Context, endpoint, authorization string, logger *slog.Logger) (*otlpTelemetry, error) {
+	// Route the SDK's async export failures through custodian's logger (a
+	// process-global install). This is what makes a runtime auth rejection — the
+	// Grafana Cloud 401 a bad credential produces on the periodic export loop —
+	// loud rather than buried in the SDK's own internal log.
+	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
+		logger.Error("OTLP export failed", "error", err)
+	}))
+
 	res, err := resource.New(ctx, resource.WithAttributes(semconv.ServiceName("custodian")))
 	if err != nil {
 		return nil, err
 	}
 
 	var headers map[string]string
-	if token != "" {
-		headers = map[string]string{"Authorization": "Bearer " + token}
+	if authorization != "" {
+		headers = map[string]string{"Authorization": authorization}
 	}
 
 	metricExporter, err := otlpmetrichttp.New(ctx,

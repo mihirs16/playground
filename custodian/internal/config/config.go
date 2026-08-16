@@ -23,7 +23,12 @@ type Config struct {
 	AdminTokenHash string
 
 	OTLPEndpoint string
-	OTLPToken    string
+
+	// OTLPAuthorization is the full value of the Authorization header custodian
+	// sends on every OTLP export, verbatim. custodian is scheme-agnostic: the
+	// deploy wrapper assembles the scheme its backend expects (Grafana Cloud's
+	// "Basic base64(instanceID:token)", say) and injects it here from SSM.
+	OTLPAuthorization string
 
 	// IntegrationKeys holds the per-source third-party secret, keyed by source.
 	// Read from the environment like every other secret; the source string is
@@ -57,15 +62,15 @@ var Sources = []string{"steam", "github"}
 // as auth or export errors, not as a boot failure, so the box always comes up.
 func Load() Config {
 	cfg := Config{
-		Addr:           getenv("CUSTODIAN_ADDR", ":8080"),
-		DBPath:         getenv("CUSTODIAN_DB_PATH", "custodian.db"),
-		AdminTokenHash: os.Getenv("CUSTODIAN_ADMIN_TOKEN_HASH"),
-		OTLPEndpoint:   os.Getenv("CUSTODIAN_OTLP_ENDPOINT"),
-		OTLPToken:      os.Getenv("CUSTODIAN_OTLP_TOKEN"),
-		CORSAllowlist:  splitList(os.Getenv("CUSTODIAN_CORS_ALLOWLIST")),
-		MediaBucket:    os.Getenv("CUSTODIAN_MEDIA_BUCKET"),
-		MediaCDNBase:   os.Getenv("CUSTODIAN_MEDIA_CDN_BASE"),
-		PollIntervals:  resolvePollIntervals(),
+		Addr:              getenv("CUSTODIAN_ADDR", ":8080"),
+		DBPath:            getenv("CUSTODIAN_DB_PATH", "custodian.db"),
+		AdminTokenHash:    os.Getenv("CUSTODIAN_ADMIN_TOKEN_HASH"),
+		OTLPEndpoint:      os.Getenv("CUSTODIAN_OTLP_ENDPOINT"),
+		OTLPAuthorization: os.Getenv("CUSTODIAN_OTLP_AUTHORIZATION"),
+		CORSAllowlist:     splitList(os.Getenv("CUSTODIAN_CORS_ALLOWLIST")),
+		MediaBucket:       os.Getenv("CUSTODIAN_MEDIA_BUCKET"),
+		MediaCDNBase:      os.Getenv("CUSTODIAN_MEDIA_CDN_BASE"),
+		PollIntervals:     resolvePollIntervals(),
 		IntegrationKeys: map[string]string{
 			"steam":  os.Getenv("CUSTODIAN_STEAM_KEY"),
 			"github": os.Getenv("CUSTODIAN_GITHUB_PAT"),
