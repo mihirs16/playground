@@ -90,6 +90,28 @@ deploy-custodian tag="latest":
     status="$(aws ssm get-command-invocation --region "$region" --command-id "$command_id" --instance-id "$instance" --query 'Status' --output text)"; \
     [ "$status" = "Success" ] || { echo "rollout failed on $instance: $status" >&2; exit 1; }
 
+# custodian logs JSON to stdout (slog); docker captures it. SSM caps returned
+# output at ~24k chars, so this tails a bounded window rather than streaming.
+# Tail custodian's container logs from the box via SSM Run Command — no SSH.
+logs-custodian tail="200":
+    set -eu; \
+    repo="$(cd deed/compute && terraform output -raw ecr_repository_url)"; \
+    instance="$(cd deed/compute && terraform output -raw instance_id)"; \
+    region="$(printf '%s' "$repo" | sed -E 's/.*\.dkr\.ecr\.([^.]+)\..*/\1/')"; \
+    remote='cid="$(docker ps -aq --filter label=com.docker.compose.project=custodian --filter label=com.docker.compose.service=custodian)"; docker logs --tail {{tail}} "$cid" 2>&1'; \
+    remote_b64="$(printf '%s' "$remote" | base64 | tr -d '\n')"; \
+    params="$(printf '{"commands":["echo %s | base64 -d | bash"]}' "$remote_b64")"; \
+    command_id="$(aws ssm send-command \
+        --region "$region" \
+        --instance-ids "$instance" \
+        --document-name AWS-RunShellScript \
+        --comment "custodian logs tail {{tail}}" \
+        --parameters "$params" \
+        --query 'Command.CommandId' --output text)"; \
+    aws ssm wait command-executed --region "$region" --command-id "$command_id" --instance-id "$instance" || true; \
+    aws ssm get-command-invocation --region "$region" --command-id "$command_id" --instance-id "$instance" \
+        --query 'StandardOutputContent' --output text
+
 # Canonically format all deed HCL in place.
 deed-fmt:
     cd deed && terraform fmt -recursive
