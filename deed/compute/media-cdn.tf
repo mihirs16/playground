@@ -55,8 +55,29 @@ resource "aws_cloudfront_origin_access_control" "media" {
 
 # Media is immutable-by-key — custodian never overwrites a reserved key — so a
 # long TTL is safe and a delete is a bucket-object removal, not an invalidation.
-data "aws_cloudfront_cache_policy" "caching_optimized" {
-  name = "Managed-CachingOptimized"
+# Every object caches for the same fixed lifetime: min = default = max pins the
+# TTL, and since CloudFront clamps any origin Cache-Control into [min, max], an
+# equal min and max makes the edge lifetime uniform regardless of what (if
+# anything) S3 sends per object. The cache key is the path alone — no cookies,
+# headers, or query strings enter it, so one key per object across all viewers.
+resource "aws_cloudfront_cache_policy" "media" {
+  name        = "custodian-media"
+  comment     = "Fixed 1-year edge TTL for immutable-by-key media objects"
+  min_ttl     = 31536000
+  default_ttl = 31536000
+  max_ttl     = 31536000
+
+  parameters_in_cache_key_and_forwarded_to_origin {
+    cookies_config {
+      cookie_behavior = "none"
+    }
+    headers_config {
+      header_behavior = "none"
+    }
+    query_strings_config {
+      query_string_behavior = "none"
+    }
+  }
 }
 
 resource "aws_cloudfront_distribution" "media" {
@@ -80,7 +101,7 @@ resource "aws_cloudfront_distribution" "media" {
     allowed_methods        = ["GET", "HEAD"]
     cached_methods         = ["GET", "HEAD"]
 
-    cache_policy_id = data.aws_cloudfront_cache_policy.caching_optimized.id
+    cache_policy_id = aws_cloudfront_cache_policy.media.id
   }
 
   restrictions {
