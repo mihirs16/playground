@@ -43,7 +43,8 @@ expires untagged ones after a day.
 Two S3 buckets are the durable homes ADR-0001 says to rent: the **media bucket**
 custodian serves uploads from and the **SQLite-backup bucket** Litestream
 replicates the database to. Both are fully private (neither is reached directly —
-media flows through the custodian origin, the backup is internal) and both carry
+the media bucket is read only by its dedicated CDN via OAC, never through
+custodian (ADR-0002); the backup is internal) and both carry
 `lifecycle { prevent_destroy = true }`, so no component destroy can silently take
 unrecoverable data regardless of how `deed`'s state is later split. The safety
 invariant lives on the resource, not on the state layout. The instance profile
@@ -67,6 +68,24 @@ The box origin needs a durable address, so it carries an **Elastic IP** with an
 `origin.<custodian_domain_name>` A record; the edge<->origin hop is plain HTTP,
 locked to CloudFront alone by pinning the box's security-group ingress to the
 `com.amazonaws.global.cloudfront.origin-facing` managed prefix list.
+
+### The media CDN
+
+Media is served CDN-direct, never through the custodian origin (ADR-0002), so it
+gets a **second, dedicated CloudFront distribution** aliased to
+`var.cdn_domain_name` (`cdn.mihirsingh.dev`) — separate from the edge because
+CloudFront routes to origins by path, not by Host. It fronts the private media
+bucket through **Origin Access Control**: a bucket policy grants `s3:GetObject`
+to the CloudFront service principal scoped by `aws:SourceArn` to this
+distribution alone. That is not a *public* policy, so the media bucket's
+public-access block (`block_public_policy = true`) stands unchanged — the bucket
+stays fully private. Its viewer certificate is a second **us-east-1 ACM cert**
+for `cdn.<domain>`, DNS-validated through the zone, and a Route 53 alias points
+the subdomain at the distribution. The default behavior serves objects by key
+(`cdn.<domain>/<key>`) with a long TTL: media is immutable-by-key, so caching is
+safe and a delete is a bucket-object removal, not an invalidation. custodian is
+handed the base as `CUSTODIAN_MEDIA_CDN_BASE` (`media_cdn_base` output,
+`https://cdn.<domain>`) so it records absolute CDN urls.
 
 DNS is a **Route 53 hosted zone** for `var.zone_name` (the apex — custodian and
 persona both live under it); registration stays at Squarespace. **The zone's name

@@ -58,6 +58,12 @@ variable "custodian_domain_name" {
   default     = "custodian.mihirsingh.dev"
 }
 
+variable "cdn_domain_name" {
+  description = "The dedicated media CDN hostname — the alias and ACM subject of the second CloudFront distribution that fronts the private media bucket via OAC (ADR-0002). A subdomain of zone_name; custodian records absolute urls under https://<this>."
+  type        = string
+  default     = "cdn.mihirsingh.dev"
+}
+
 variable "bootstrap_secrets" {
   description = "Startup secrets custodian reads from the environment. Each key is the exact env var name custodian expects (custodian/internal/config/config.go) and becomes the SSM parameter leaf under ssm_bootstrap_prefix, so the deploy wrapper's SSM->env step exports each leaf verbatim with no mapping table. Supplied via git-ignored tfvars; lands in encrypted state, accepted."
   type        = map(string)

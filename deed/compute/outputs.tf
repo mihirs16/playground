@@ -57,3 +57,18 @@ output "custodian_url" {
   description = "Where custodian is reachable over HTTPS once delegation is live."
   value       = "https://${var.custodian_domain_name}"
 }
+
+output "media_cdn_distribution_id" {
+  description = "The media CDN distribution ID (cdn.<domain>), separate from the edge."
+  value       = aws_cloudfront_distribution.media.id
+}
+
+output "media_cdn_domain_name" {
+  description = "The media CDN's CloudFront domain; cdn.<domain>'s A/AAAA aliases resolve here."
+  value       = aws_cloudfront_distribution.media.domain_name
+}
+
+output "media_cdn_base" {
+  description = "Absolute base custodian records media urls under; the deploy wrapper sets it as CUSTODIAN_MEDIA_CDN_BASE."
+  value       = "https://${var.cdn_domain_name}"
+}
