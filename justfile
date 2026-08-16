@@ -59,6 +59,7 @@ deploy-custodian tag="latest":
     repo="$(cd deed/compute && terraform output -raw ecr_repository_url)"; \
     instance="$(cd deed/compute && terraform output -raw instance_id)"; \
     media_bucket="$(cd deed/compute && terraform output -raw media_bucket_name)"; \
+    media_cdn_base="$(cd deed/compute && terraform output -raw media_cdn_base)"; \
     backup_bucket="$(cd deed/compute && terraform output -raw sqlite_backup_bucket_name)"; \
     ssm_prefix="$(cd deed/compute && terraform output -raw ssm_bootstrap_prefix)"; \
     region="$(printf '%s' "$repo" | sed -E 's/.*\.dkr\.ecr\.([^.]+)\..*/\1/')"; \
@@ -71,6 +72,7 @@ deploy-custodian tag="latest":
         "export CUSTODIAN_IMAGE='$image'" \
         "export CUSTODIAN_SSM_BOOTSTRAP_PREFIX='$ssm_prefix'" \
         "export CUSTODIAN_MEDIA_BUCKET='$media_bucket'" \
+        "export CUSTODIAN_MEDIA_CDN_BASE='$media_cdn_base'" \
         "export CUSTODIAN_SQLITE_BACKUP_BUCKET='$backup_bucket'" \
         "export AWS_REGION='$region'" \
         "bash /opt/custodian/deploy-wrapper.sh")"; \
