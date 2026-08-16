@@ -30,7 +30,7 @@ indefinitely; no history/timeline read endpoint in v1.
 **Blocked by:** 04, 01b (needs the credential-table + endpoint removal and the
 env-key config from the corrective ticket).
 
-**Status:** ready-for-agent
+**Status:** done (against the injected fake; real Steam/GitHub client is ticket 11)
 
 - [ ] One 5-minute tick polls both sources; interval config-overridable per source, 5-min default
 - [ ] GitHub polled with `If-None-Match`; `304` treated as no change

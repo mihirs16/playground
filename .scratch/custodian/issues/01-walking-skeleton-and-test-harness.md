@@ -17,7 +17,7 @@ source treated as opaque.
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] `go build` produces a single static ARM64-cross-compilable binary (`CGO_ENABLED=0`)
 - [ ] Server boots, runs migrations against `modernc.org/sqlite`, and serves both sub-routers

@@ -32,7 +32,7 @@ removal, not an unpick. Correct it before `06` builds the poller on top.
 
 **Blocked by:** None — corrects already-shipped code; can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] `integration_credential` table removed from `0001_init.sql`; `integration` timeseries table unchanged
 - [ ] Credential `PUT` path + `IntegrationCredential` schema removed from `custodian.yaml`; `refresh` and public read retained

@@ -19,7 +19,7 @@ validation failures, a field-errors array.
 
 **Blocked by:** 02.
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] `/admin/*` requires a valid hashed bearer; absent/wrong → problem+json auth error; token hash from env
 - [ ] Admin responses are `no-store`; credential accepted only via header, never cookie

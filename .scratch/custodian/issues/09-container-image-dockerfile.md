@@ -14,7 +14,7 @@ container per `19` (`deed.md:255-257`), so it does not belong in this image.
 
 **Blocked by:** 01.
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] `Dockerfile` builds a `linux/arm64` image from the static release binary (matches the box's Graviton `t4g` arch)
 - [ ] Image contains only custodian's binary on a minimal base — no Litestream, no compose/nginx artifacts
