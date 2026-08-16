@@ -106,6 +106,7 @@ A first-class, independent content type — not owned by any log. Full CRUD, lis
 
 - **Fields**: url, filename, content-type, size, upload date, caption, attribution.
 - **URL** is a generic, public, domain-owned CDN URL (`cdn.mihirsingh.dev/…`) — **not** scoped to a log (no `logs/<slug>/` in the path). The author pastes it into a log body as ordinary markdown, so the body stays portable to any markdown platform.
+- **Serving is CDN-direct.** Media is served straight from the S3 media bucket by a **dedicated CDN** (`cdn.mihirsingh.dev`) — a CloudFront distribution separate from the custodian/persona edge, locked to the private bucket via OAC. `custodian` is **never on the media byte path**: bytes go broom→S3 on write (presigned `PUT`) and browser→CDN→S3 on read. `custodian` only presigns, HEADs to confirm, and deletes — and records each media's absolute CDN url (its `url` field) so `persona` and log bodies reference the CDN, never `custodian`. See [ADR-0002](docs/adr/0002-media-served-cdn-direct.md).
 - Logs reference media only as **URL text** `custodian` does not parse, so there is no referential integrity. Deleting media can orphan a link. Mitigation is an active **`broom` reference-check**: because log bodies are pure-text markdown, `broom` searches all logs for a media URL before deleting it. Orphaning is otherwise the author's responsibility.
 
 ### `profile`

@@ -20,9 +20,13 @@ resource "aws_s3_bucket" "sqlite_backup" {
   }
 }
 
-# Neither bucket is reached directly: media is served through the custodian origin
-# (ticket 06 routes /media/<key> to the box, not to S3), and the backup bucket is
-# an internal Litestream target. Both stay fully private.
+# Neither bucket is reached by the public directly. The media bucket is read only
+# by its own dedicated CloudFront CDN (cdn.<domain>) via OAC — custodian is never
+# on the media byte path (ADR-0002); the CDN distribution and the bucket policy
+# granting it GetObject land in a later deed ticket. The backup bucket is an
+# internal Litestream target. Both stay fully private: OAC authorizes through a
+# bucket policy scoped to the distribution, not public ACLs, so the access block
+# below stands.
 resource "aws_s3_bucket_public_access_block" "media" {
   bucket                  = aws_s3_bucket.media.id
   block_public_acls       = true

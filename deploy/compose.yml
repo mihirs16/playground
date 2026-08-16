@@ -39,6 +39,10 @@ services:
       CUSTODIAN_ADDR: ":8080"
       CUSTODIAN_DB_PATH: /data/custodian.db
       CUSTODIAN_MEDIA_BUCKET: ${CUSTODIAN_MEDIA_BUCKET}
+      # The AWS SDK resolves its region from this; aws-sdk-go-v2 does not fall
+      # back to the IMDS instance region, so without it every S3 call (presign,
+      # HEAD, delete) fails to resolve an endpoint.
+      AWS_REGION: ${AWS_REGION}
       # Poll cadence: 60s here overrides custodian's 5-min default (config.go).
       # Both sources inherit it; per-source overrides would be
       # CUSTODIAN_POLL_INTERVAL_{STEAM,GITHUB}.
