@@ -4,7 +4,8 @@
 # Recipe bodies are POSIX sh (&&, VAR=x prefixes, cd). Unix uses the default sh.
 # Windows has no sh on PATH, so route through the bash that ships with Git —
 # keeping one shell dialect for every recipe instead of forking them per OS.
-set windows-shell := ["C:/Program Files/Git/bin/bash.exe", "-cu"]
+[windows]
+set shell := ["C:/Program Files/Git/bin/bash.exe", "-cu"]
 
 oapi_codegen := "go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1"
 
