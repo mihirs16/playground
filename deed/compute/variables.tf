@@ -23,7 +23,7 @@ variable "ssm_bootstrap_prefix" {
 }
 
 variable "bootstrap_secrets" {
-  description = "Bootstrap-secret values custodian reads at startup (admin-token hash, Grafana Cloud OTLP credential). Keys become the leaf of the SSM parameter name under ssm_bootstrap_prefix. Supplied via git-ignored tfvars; lands in encrypted state, accepted."
+  description = "Startup secrets custodian reads from the environment. Each key is the exact env var name custodian expects (custodian/internal/config/config.go) and becomes the SSM parameter leaf under ssm_bootstrap_prefix, so the deploy wrapper's SSM->env step exports each leaf verbatim with no mapping table. Supplied via git-ignored tfvars; lands in encrypted state, accepted."
   type        = map(string)
   sensitive   = true
 }

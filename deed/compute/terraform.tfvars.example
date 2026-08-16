@@ -1,7 +1,17 @@
 # Copy to terraform.tfvars (git-ignored) and fill in real values. These land in
 # encrypted state — accepted per ticket 02. deed provisions the parameters and
 # the read grant; the deploy wrapper does the SSM->env injection on the box.
+#
+# Each map KEY is the exact environment variable custodian reads
+# (custodian/internal/config/config.go), so the wrapper's SSM->env step exports
+# each parameter's leaf name verbatim — no mapping table. The map VALUE is the
+# secret. Non-secret runtime config custodian also needs — CUSTODIAN_OTLP_ENDPOINT,
+# CUSTODIAN_CORS_ALLOWLIST, CUSTODIAN_MEDIA_BUCKET, CUSTODIAN_MEDIA_CDN_BASE,
+# CUSTODIAN_ADDR, CUSTODIAN_DB_PATH — is not secret and is set by the deploy
+# wrapper directly, never stored here.
 bootstrap_secrets = {
-  "admin-token-hash" = "REPLACE_ME" # hex-encoded SHA-256 of custodian's admin token (CUSTODIAN_ADMIN_TOKEN_HASH)
-  "otlp-credential"  = "REPLACE_ME" # full Authorization header custodian sends verbatim (CUSTODIAN_OTLP_AUTHORIZATION), e.g. "Basic <base64(instanceID:token)>" for Grafana Cloud; the endpoint URL is non-secret deploy-wrapper config
+  "CUSTODIAN_ADMIN_TOKEN_HASH"   = "REPLACE_ME" # hex-encoded SHA-256 of the admin bearer token
+  "CUSTODIAN_OTLP_AUTHORIZATION" = "REPLACE_ME" # full Authorization header value, e.g. "Basic <base64(instanceID:token)>" for Grafana Cloud
+  "CUSTODIAN_STEAM_KEY"          = "REPLACE_ME" # Steam Web API key for the integration poller
+  "CUSTODIAN_GITHUB_PAT"         = "REPLACE_ME" # GitHub PAT for the activity integration poller
 }

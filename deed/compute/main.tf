@@ -61,6 +61,11 @@ resource "aws_iam_role" "box" {
 # is a tfvars edit, never a policy edit. Reading a SecureString also needs
 # kms:Decrypt; the account's default aws/ssm key grants that when the call comes
 # through SSM, so no explicit KMS statement is required here.
+#
+# Two resource ARNs, not one: GetParameter/GetParameters authorize against each
+# child parameter (the "/*" arm), but GetParametersByPath authorizes against the
+# path node itself (no trailing slash), which "/*" does not match. Both are needed
+# so the wrapper can discover secrets by path, not just read them by exact name.
 data "aws_iam_policy_document" "read_bootstrap_secrets" {
   statement {
     sid = "ReadBootstrapSecrets"
@@ -70,6 +75,7 @@ data "aws_iam_policy_document" "read_bootstrap_secrets" {
       "ssm:GetParametersByPath",
     ]
     resources = [
+      "arn:aws:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter${var.ssm_bootstrap_prefix}",
       "arn:aws:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter${var.ssm_bootstrap_prefix}/*",
     ]
   }
