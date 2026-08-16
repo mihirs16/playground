@@ -2,6 +2,6 @@
 # encrypted state — accepted per ticket 02. deed provisions the parameters and
 # the read grant; the deploy wrapper does the SSM->env injection on the box.
 bootstrap_secrets = {
-  "admin-token-hash" = "REPLACE_ME" # bcrypt/argon2 hash of custodian's admin token
-  "otlp-credential"  = "REPLACE_ME" # Grafana Cloud OTLP Authorization header value
+  "admin-token-hash" = "REPLACE_ME" # hex-encoded SHA-256 of custodian's admin token (CUSTODIAN_ADMIN_TOKEN_HASH)
+  "otlp-credential"  = "REPLACE_ME" # Grafana Cloud OTLP Bearer token (CUSTODIAN_OTLP_TOKEN); the endpoint URL is non-secret deploy-wrapper config
 }
