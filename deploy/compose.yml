@@ -39,6 +39,10 @@ services:
       CUSTODIAN_ADDR: ":8080"
       CUSTODIAN_DB_PATH: /data/custodian.db
       CUSTODIAN_MEDIA_BUCKET: ${CUSTODIAN_MEDIA_BUCKET}
+      # Poll cadence: 60s here overrides custodian's 5-min default (config.go).
+      # Both sources inherit it; per-source overrides would be
+      # CUSTODIAN_POLL_INTERVAL_{STEAM,GITHUB}.
+      CUSTODIAN_POLL_INTERVAL: "60s"
       # App-config knobs, not deed outputs: the rollout leaves them unset and
       # custodian applies its own defaults (empty CORS = no cross-origin reads).
       CUSTODIAN_MEDIA_CDN_BASE: ${CUSTODIAN_MEDIA_CDN_BASE:-}
