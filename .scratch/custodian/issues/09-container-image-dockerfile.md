@@ -1,4 +1,4 @@
-# 08 — Container image: Dockerfile for the static ARM64 binary
+# 09 — Container image: Dockerfile for the static ARM64 binary
 
 **What to build:** custodian gets the one packaging artifact that legitimately
 lives with its code — a `Dockerfile` that turns the static ARM64 release binary

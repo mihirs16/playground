@@ -14,7 +14,7 @@ on the box that reads bootstrap secrets **SSM→env onto tmpfs (`/run`)** and ru
 
 Two seams, split by dependency so the push half lands as soon as ECR exists:
 
-- **Build & push** (unblocked by `deed/03` + `custodian/08`): resolve the registry
+- **Build & push** (unblocked by `deed/03` + `custodian/09`): resolve the registry
   URL from `deed/compute`'s `ecr_repository_url` output, `docker login` to ECR
   under SSO, build/tag `linux/arm64`, `docker push`. A `just` recipe.
 - **Rollout** (wants the edge, `deed/05`, since `nginx.conf` is an origin
@@ -25,7 +25,7 @@ Two seams, split by dependency so the push half lands as soon as ECR exists:
 `deed` provisions *authorization*, never the runtime injection of secret values
 (`deed.md:273-274`); the deploy wrapper does the SSM→env step, not `deed`.
 
-**Blocked by:** 03, 05, custodian/08.
+**Blocked by:** 03, 05, custodian/09.
 
 **Status:** ready-for-agent
 
