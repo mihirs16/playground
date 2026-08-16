@@ -20,14 +20,32 @@ CLI and stops at "Docker engine running" — plus the named Docker volume the
 SQLite file lives in. The box's only AWS identity is an IAM instance profile;
 there is no long-lived AWS key on it.
 
-The bootstrap secrets custodian reads at startup (admin-token hash, Grafana
-Cloud OTLP credential) are SSM `SecureString` parameters under a shared prefix,
-their values supplied via git-ignored tfvars — copy `compute/terraform.tfvars.example`
-to `compute/terraform.tfvars` and fill in real values. They land in encrypted
-state, accepted. The instance profile carries a **path-wildcard read** over that
-prefix, so adding a bootstrap secret later is a tfvars edit, not a policy edit.
-`deed` delivers authorization to read; the deploy wrapper does the SSM→env step
-on the box.
+The bootstrap secrets custodian reads at startup are SSM `SecureString`
+parameters under a shared prefix, their values supplied via git-ignored tfvars —
+copy `compute/terraform.tfvars.example` to `compute/terraform.tfvars` and fill in
+real values. They land in encrypted state, accepted. The instance profile carries
+a **path-wildcard read** over that prefix, so adding a bootstrap secret later is a
+tfvars edit, not a policy edit. `deed` delivers authorization to read; the deploy
+wrapper does the SSM→env step on the box.
+
+### The env-var contract
+
+Each `bootstrap_secrets` key **is** the environment variable name custodian reads
+(`custodian/internal/config/config.go`). The deploy wrapper reads every parameter
+under the prefix and exports each one under its leaf name verbatim — no mapping
+table. The secrets `deed` provisions:
+
+| SSM parameter leaf (= env var) | Value |
+|---|---|
+| `CUSTODIAN_ADMIN_TOKEN_HASH` | hex-encoded SHA-256 of the admin bearer token |
+| `CUSTODIAN_OTLP_AUTHORIZATION` | full `Authorization` header value, e.g. `Basic <base64(instanceID:token)>` |
+| `CUSTODIAN_STEAM_KEY` | Steam Web API key |
+| `CUSTODIAN_GITHUB_PAT` | GitHub PAT |
+
+The **non-secret** runtime config custodian also needs is *not* stored in `deed`
+— the deploy wrapper sets it directly: `CUSTODIAN_OTLP_ENDPOINT` (base `.../otlp`
+gateway URL), `CUSTODIAN_CORS_ALLOWLIST`, `CUSTODIAN_MEDIA_BUCKET`,
+`CUSTODIAN_MEDIA_CDN_BASE`, and the optional `CUSTODIAN_ADDR` / `CUSTODIAN_DB_PATH`.
 
 `deed` provisions into the operator's existing single AWS account via ambient
 SSO credentials — it does not enable an Organization or create a member account.
