@@ -1,0 +1,11 @@
+# Litestream's replication config, mounted into the sidecar. Bucket and region
+# arrive from the environment (compose sets them from deed's Terraform outputs);
+# credentials do not — Litestream uses the box's instance profile via IMDS, the
+# same keyless path deed grants for the SQLite-backup bucket (deed/04).
+dbs:
+  - path: /data/custodian.db
+    replicas:
+      - type: s3
+        bucket: ${LITESTREAM_REPLICA_BUCKET}
+        path: custodian
+        region: ${LITESTREAM_REPLICA_REGION}

@@ -40,6 +40,57 @@ test component="custodian":
 lint:
     cd custodian && gofmt -l . && go vet ./...
 
+# Build custodian's linux/arm64 image and push it to ECR under SSO — no Terraform.
+# Registry URL is deed/compute's ecr_repository_url output; region read from its host.
+push-custodian tag="latest": build-custodian-release
+    #!/usr/bin/env bash
+    set -euo pipefail
+    repo="$(cd deed/compute && terraform output -raw ecr_repository_url)"
+    region="$(printf '%s' "$repo" | sed -E 's/.*\.dkr\.ecr\.([^.]+)\..*/\1/')"
+    docker build --platform linux/arm64 -t "$repo:{{tag}}" custodian
+    aws ecr get-login-password --region "$region" \
+        | docker login --username AWS --password-stdin "${repo%%/*}"
+    docker push "$repo:{{tag}}"
+
+# Roll custodian out on the box via SSM Run Command — no SSH, no Terraform.
+# Ships the deploy artifacts + wrapper, then the wrapper does SSM->tmpfs + compose up.
+deploy-custodian tag="latest":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    repo="$(cd deed/compute && terraform output -raw ecr_repository_url)"
+    instance="$(cd deed/compute && terraform output -raw instance_id)"
+    media_bucket="$(cd deed/compute && terraform output -raw media_bucket_name)"
+    backup_bucket="$(cd deed/compute && terraform output -raw sqlite_backup_bucket_name)"
+    ssm_prefix="$(cd deed/compute && terraform output -raw ssm_bootstrap_prefix)"
+    region="$(printf '%s' "$repo" | sed -E 's/.*\.dkr\.ecr\.([^.]+)\..*/\1/')"
+    image="$repo:{{tag}}"
+    payload="$(tar -czf - -C deploy compose.yml nginx.conf litestream.yml deploy-wrapper.sh | base64 | tr -d '\n')"
+    remote="$(printf '%s\n' \
+        "set -euo pipefail" \
+        "install -d -m 0755 /opt/custodian" \
+        "printf '%s' '$payload' | base64 -d | tar -xzf - -C /opt/custodian" \
+        "export CUSTODIAN_IMAGE='$image'" \
+        "export CUSTODIAN_SSM_BOOTSTRAP_PREFIX='$ssm_prefix'" \
+        "export CUSTODIAN_MEDIA_BUCKET='$media_bucket'" \
+        "export CUSTODIAN_SQLITE_BACKUP_BUCKET='$backup_bucket'" \
+        "export AWS_REGION='$region'" \
+        "bash /opt/custodian/deploy-wrapper.sh")"
+    command_id="$(aws ssm send-command \
+        --region "$region" \
+        --instance-ids "$instance" \
+        --document-name AWS-RunShellScript \
+        --comment "custodian rollout {{tag}}" \
+        --parameters commands="$remote" \
+        --query 'Command.CommandId' --output text)"
+    echo "SSM command $command_id sent to $instance ({{tag}}); waiting for it to finish..."
+    # `wait` returns non-zero on a failed invocation; don't let that abort before
+    # the output below, which is what tells the operator why it failed.
+    aws ssm wait command-executed --region "$region" --command-id "$command_id" --instance-id "$instance" || true
+    aws ssm get-command-invocation --region "$region" --command-id "$command_id" --instance-id "$instance" \
+        --query '{Status:Status,Stdout:StandardOutputContent,Stderr:StandardErrorContent}' --output text
+    status="$(aws ssm get-command-invocation --region "$region" --command-id "$command_id" --instance-id "$instance" --query 'Status' --output text)"
+    [ "$status" = "Success" ] || { echo "rollout failed on $instance: $status" >&2; exit 1; }
+
 # Canonically format all deed HCL in place.
 deed-fmt:
     cd deed && terraform fmt -recursive

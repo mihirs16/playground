@@ -1,0 +1,71 @@
+# custodian's runtime, as it runs on the box. This file is an application
+# artifact, not deed's: it versions with custodian and carries the image tag, so
+# a route change or a version bump never forces a `terraform apply` (deed.md:241,
+# story 29). `just deploy-custodian` ships this file to the box and runs the
+# deploy wrapper, which sets every ${...} below before `docker compose up`.
+#
+# Two env sources, kept apart on purpose:
+#   - env_file (/run/custodian.env) — bootstrap SECRETS, fetched SSM->tmpfs by
+#     the wrapper. Never interpolated here, so no secret reaches a compose log or
+#     the process table.
+#   - environment ${...} — non-secret config the laptop resolves from deed's
+#     Terraform outputs (bucket names, region, image ref) and exports before
+#     compose runs. Compose substitutes them from the shell.
+name: custodian
+
+services:
+  # The API. A pure static binary reading everything from os.Getenv; the image
+  # bakes in nothing (custodian/Dockerfile, custodian/09).
+  custodian:
+    image: ${CUSTODIAN_IMAGE:?deploy wrapper must set CUSTODIAN_IMAGE to the ECR image ref}
+    restart: unless-stopped
+    env_file:
+      - /run/custodian.env
+    environment:
+      CUSTODIAN_ADDR: ":8080"
+      CUSTODIAN_DB_PATH: /data/custodian.db
+      CUSTODIAN_MEDIA_BUCKET: ${CUSTODIAN_MEDIA_BUCKET}
+      # App-config knobs, not deed outputs: the rollout leaves them unset and
+      # custodian applies its own defaults (empty CORS = no cross-origin reads).
+      CUSTODIAN_MEDIA_CDN_BASE: ${CUSTODIAN_MEDIA_CDN_BASE:-}
+      CUSTODIAN_CORS_ALLOWLIST: ${CUSTODIAN_CORS_ALLOWLIST:-}
+    volumes:
+      - custodian-data:/data
+    expose:
+      - "8080"
+
+  # Litestream replicates the SQLite file off-box (deed.md:255-257, story 33).
+  # It runs as a sidecar rather than inside custodian's image so that image stays
+  # a pure static binary. It shares the data volume with custodian and reaches S3
+  # through the box's instance profile via IMDS — no static credential.
+  litestream:
+    image: litestream/litestream:0.3
+    restart: unless-stopped
+    command: ["replicate"]
+    environment:
+      LITESTREAM_REPLICA_BUCKET: ${CUSTODIAN_SQLITE_BACKUP_BUCKET}
+      LITESTREAM_REPLICA_REGION: ${AWS_REGION}
+    volumes:
+      - custodian-data:/data
+      - ./litestream.yml:/etc/litestream.yml:ro
+
+  # The origin reverse-proxy: plain HTTP on :80 (TLS is CloudFront's job at the
+  # edge, deed.md:244-245) with per-location limit_req. It is the box's one
+  # ingress, reachable only from the CloudFront origin-facing prefix list (deed
+  # security group). It does not terminate TLS and holds no certificate.
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      - custodian
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+
+# Created by deed's user_data (var.docker_volume_name); declared external so a
+# `compose down -v` can never take custodian's SQLite file with it.
+volumes:
+  custodian-data:
+    external: true
+    name: custodian-data

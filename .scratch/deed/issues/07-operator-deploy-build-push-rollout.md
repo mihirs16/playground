@@ -27,11 +27,21 @@ Two seams, split by dependency so the push half lands as soon as ECR exists:
 
 **Blocked by:** 03, 05, custodian/09.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `just` recipe builds custodian's `linux/arm64` image, logs into ECR under SSO, tags, and `docker push`es it — no Terraform touched
-- [ ] Registry URL comes from `deed/compute`'s `ecr_repository_url` output (single source of truth), not a hand-duplicated string
-- [ ] `compose.yml` + `nginx.conf` live as deploy artifacts carrying the image tag; nginx is origin reverse-proxy + per-location `limit_req`, not TLS termination
-- [ ] Deploy wrapper fetches bootstrap secrets SSM→env onto tmpfs (`/run`), then `docker compose pull && up -d`; no secret persisted to disk beyond Docker's own root-only config (accepted caveat)
-- [ ] `just deploy-custodian` rolls out via SSM Run Command — no SSH key, no inbound SSH
-- [ ] Litestream runs as a sidecar container on the SQLite volume, keeping custodian's image a pure static binary
+- [x] `just` recipe builds custodian's `linux/arm64` image, logs into ECR under SSO, tags, and `docker push`es it — no Terraform touched
+- [x] Registry URL comes from `deed/compute`'s `ecr_repository_url` output (single source of truth), not a hand-duplicated string
+- [x] `compose.yml` + `nginx.conf` live as deploy artifacts carrying the image tag; nginx is origin reverse-proxy + per-location `limit_req`, not TLS termination
+- [x] Deploy wrapper fetches bootstrap secrets SSM→env onto tmpfs (`/run`), then `docker compose pull && up -d`; no secret persisted to disk beyond Docker's own root-only config (accepted caveat)
+- [x] `just deploy-custodian` rolls out via SSM Run Command — no SSH key, no inbound SSH
+- [x] Litestream runs as a sidecar container on the SQLite volume, keeping custodian's image a pure static binary
+
+Implemented as `deploy/` (compose.yml, nginx.conf, litestream.yml, deploy-wrapper.sh)
+plus `just push-custodian` and `just deploy-custodian`. `just --list` parses; the
+rendered rollout script and the artifact tar round-trip locally.
+
+**Human-verification deferred:** an end-to-end push + rollout needs SSO creds, the
+applied `deed/compute` outputs, and the live box — not runnable from CI or this
+laptop without an AWS session. The push half is exercisable as soon as an SSO
+session and a built image exist; the rollout half additionally needs the box up
+with the bootstrap secrets provisioned.
