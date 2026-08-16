@@ -9,7 +9,7 @@ shared S3 backend.
 ```
 deed/
   foundation/   account wiring + backend scaffold (creates nothing)
-  compute/      custodian's box: EC2 + EBS, instance profile, SSM bootstrap secrets
+  compute/      custodian's box: EC2 + EBS, instance profile, SSM bootstrap secrets, ECR registry
 ```
 
 ## `compute`
@@ -27,6 +27,16 @@ real values. They land in encrypted state, accepted. The instance profile carrie
 a **path-wildcard read** over that prefix, so adding a bootstrap secret later is a
 tfvars edit, not a policy edit. `deed` delivers authorization to read; the deploy
 wrapper does the SSM→env step on the box.
+
+### The registry
+
+custodian's image lives in an ECR repository the box pulls from **via its instance
+profile alone** — no long-lived registry PAT on the box (the reason GHCR was
+rejected). The instance profile carries an ECR pull grant: repository-scoped
+layer/image reads plus the registry-level `ecr:GetAuthorizationToken` (which cannot
+be resource-scoped). A lifecycle policy keeps image storage flat as versions
+accumulate — it retains the most recent `ecr_image_retention_count` images and
+expires untagged ones after a day.
 
 ### The env-var contract
 

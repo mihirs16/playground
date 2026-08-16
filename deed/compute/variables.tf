@@ -22,6 +22,18 @@ variable "ssm_bootstrap_prefix" {
   default     = "/playground/custodian/bootstrap"
 }
 
+variable "ecr_repository_name" {
+  description = "ECR repository custodian's image is pushed to and the box pulls from via its instance profile."
+  type        = string
+  default     = "custodian"
+}
+
+variable "ecr_image_retention_count" {
+  description = "How many recent images the lifecycle policy keeps. Older images (and untagged ones sooner) expire, keeping storage flat as versions accumulate."
+  type        = number
+  default     = 10
+}
+
 variable "bootstrap_secrets" {
   description = "Startup secrets custodian reads from the environment. Each key is the exact env var name custodian expects (custodian/internal/config/config.go) and becomes the SSM parameter leaf under ssm_bootstrap_prefix, so the deploy wrapper's SSM->env step exports each leaf verbatim with no mapping table. Supplied via git-ignored tfvars; lands in encrypted state, accepted."
   type        = map(string)

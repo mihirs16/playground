@@ -13,6 +13,11 @@ output "instance_profile_name" {
   value       = aws_iam_instance_profile.box.name
 }
 
+output "ecr_repository_url" {
+  description = "Registry URL the custodian image is pushed to and the box pulls from."
+  value       = aws_ecr_repository.custodian.repository_url
+}
+
 output "ssm_bootstrap_prefix" {
   description = "Prefix the deploy wrapper reads bootstrap secrets from."
   value       = var.ssm_bootstrap_prefix
