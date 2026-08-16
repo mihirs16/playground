@@ -18,11 +18,11 @@ fresh record for each source against live credentials.
 
 **Blocked by:** 06 (integration poller & timeseries read against the fake).
 
-**Status:** ready-for-agent
+**Status:** in-review
 
-- [ ] Concrete Steam and GitHub adapters implement `SourceClient`; credentials read from env at startup
-- [ ] Each adapter shapes its raw response into persona's per-widget shape (Steam 2-week aggregate, GitHub filtered feed)
-- [ ] GitHub polled with `If-None-Match`; real ETag round-trips and a `304` is treated as no change
-- [ ] A network failure is an error (not an empty result); unreachable source never flips the health gauge
-- [ ] Existing poller tests pass unchanged against the fake (interface untouched)
-- [ ] Operator smoke: `POST .../refresh` returns a fresh record for both Steam and GitHub against live credentials
+- [x] Concrete Steam and GitHub adapters implement `SourceClient`; credentials read from env at startup
+- [x] Each adapter shapes its raw response into persona's per-widget shape (Steam 2-week aggregate, GitHub filtered feed)
+- [x] GitHub polled with `If-None-Match`; real ETag round-trips and a `304` is treated as no change
+- [x] A network failure is an error (not an empty result); unreachable source never flips the health gauge
+- [x] Existing poller tests pass unchanged against the fake (interface untouched)
+- [ ] Operator smoke: `POST .../refresh` returns a fresh record for both Steam and GitHub against live credentials (requires live credentials — operator verification)

@@ -2,16 +2,15 @@ package edges
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/mihirs16/playground/custodian/internal/config"
 )
 
-// Real constructs the production edges from config. The Steam/GitHub HTTP clients
-// remain stubbed to return a clear not-implemented error until wired; the S3
-// object store and the OTel/OTLP exporter are real.
+// Real constructs the production edges from config. The Steam/GitHub source
+// client, the S3 object store, and the OTel/OTLP exporter are all real; each
+// reads its own credentials and identifiers from config at startup.
 //
 // Each real edge that can fail to build follows the same rule: the box still
 // boots, and the failure shows up loudly in the startup log rather than being
@@ -38,7 +37,7 @@ func Real(cfg config.Config, logger *slog.Logger) Set {
 
 	return Set{
 		ObjectStore:  objectStore,
-		SourceClient: &httpSourceClient{},
+		SourceClient: newSourceClient(cfg.SteamID, cfg.GitHubUser),
 		Telemetry:    telemetry,
 	}
 }
@@ -54,15 +53,3 @@ func (e errObjectStore) PresignPut(context.Context, string, string, time.Duratio
 func (e errObjectStore) HeadObject(context.Context, string) (bool, error) { return false, e.err }
 func (e errObjectStore) HeadBucket(context.Context) error                 { return e.err }
 func (e errObjectStore) DeleteObject(context.Context, string) error       { return e.err }
-
-type httpSourceClient struct{}
-
-func (c *httpSourceClient) Fetch(context.Context, string, string, string) (FetchResult, error) {
-	return FetchResult{}, errNotImplemented{"source client fetch"}
-}
-
-type errNotImplemented struct{ what string }
-
-func (e errNotImplemented) Error() string {
-	return fmt.Sprintf("%s: not implemented", e.what)
-}

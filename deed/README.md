@@ -91,7 +91,9 @@ table. The secrets `deed` provisions:
 
 The remaining **non-secret** runtime config custodian needs is *not* stored in
 `deed` — the deploy wrapper/compose set it directly: `CUSTODIAN_CORS_ALLOWLIST`,
-`CUSTODIAN_MEDIA_BUCKET`, `CUSTODIAN_MEDIA_CDN_BASE`, and the optional
+`CUSTODIAN_MEDIA_BUCKET`, `CUSTODIAN_MEDIA_CDN_BASE`, the integration identifiers
+`CUSTODIAN_STEAM_ID` / `CUSTODIAN_GITHUB_USER` (which account each source client
+polls — non-secret, paired with the secret key that reads it), and the optional
 `CUSTODIAN_ADDR` / `CUSTODIAN_DB_PATH`.
 
 `deed` provisions into the operator's existing single AWS account via ambient

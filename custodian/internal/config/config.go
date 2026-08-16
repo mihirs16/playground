@@ -38,6 +38,14 @@ type Config struct {
 	// treated as opaque and the poller (06) consumes these at fetch time.
 	IntegrationKeys map[string]string
 
+	// SteamID is the 64-bit SteamID whose recently-played games custodian polls.
+	// Not a secret, but source-specific like the identifiers below: which account
+	// to read is deployment config, held next to the credential that reads it.
+	SteamID string
+
+	// GitHubUser is the login whose public activity feed custodian polls.
+	GitHubUser string
+
 	// CORSAllowlist is the set of origins the public surface allows explicitly.
 	// Never a wildcard; an empty list means no cross-origin reads are permitted.
 	CORSAllowlist []string
@@ -78,6 +86,8 @@ func Load() Config {
 			"steam":  os.Getenv("CUSTODIAN_STEAM_KEY"),
 			"github": os.Getenv("CUSTODIAN_GITHUB_PAT"),
 		},
+		SteamID:    os.Getenv("CUSTODIAN_STEAM_ID"),
+		GitHubUser: os.Getenv("CUSTODIAN_GITHUB_USER"),
 	}
 	return cfg
 }
