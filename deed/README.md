@@ -106,14 +106,17 @@ table. The secrets `deed` provisions:
 | `CUSTODIAN_OTLP_ENDPOINT` | base `.../otlp` gateway URL (non-secret, co-located here so the one SSM→env path delivers it; custodian exports nothing when it is unset) |
 | `CUSTODIAN_OTLP_AUTHORIZATION` | full `Authorization` header value, e.g. `Basic <base64(instanceID:token)>` |
 | `CUSTODIAN_STEAM_KEY` | Steam Web API key |
+| `CUSTODIAN_STEAM_ID` | non-secret: the SteamID64 the key polls (co-located so the one SSM→env path delivers it; empty → Steam 400) |
 | `CUSTODIAN_GITHUB_PAT` | GitHub PAT |
+| `CUSTODIAN_GITHUB_USER` | non-secret: the GitHub login the PAT polls (co-located likewise; empty → GitHub 404) |
 
 The remaining **non-secret** runtime config custodian needs is *not* stored in
 `deed` — the deploy wrapper/compose set it directly: `CUSTODIAN_CORS_ALLOWLIST`,
-`CUSTODIAN_MEDIA_BUCKET`, `CUSTODIAN_MEDIA_CDN_BASE`, the integration identifiers
-`CUSTODIAN_STEAM_ID` / `CUSTODIAN_GITHUB_USER` (which account each source client
-polls — non-secret, paired with the secret key that reads it), and the optional
-`CUSTODIAN_ADDR` / `CUSTODIAN_DB_PATH`.
+`CUSTODIAN_MEDIA_BUCKET`, `CUSTODIAN_MEDIA_CDN_BASE`, and the optional
+`CUSTODIAN_ADDR` / `CUSTODIAN_DB_PATH`. The integration identifiers
+`CUSTODIAN_STEAM_ID` / `CUSTODIAN_GITHUB_USER` are non-secret but co-located in
+the table above, next to the secret key each is paired with — a key with no
+account to poll is inert, so the two travel together down the one SSM→env path.
 
 `deed` provisions into the operator's existing single AWS account via ambient
 SSO credentials — it does not enable an Organization or create a member account.

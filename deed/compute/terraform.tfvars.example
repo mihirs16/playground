@@ -7,13 +7,18 @@
 # each parameter's leaf name verbatim — no mapping table. Values are secret
 # except CUSTODIAN_OTLP_ENDPOINT, which is non-secret but co-located here so the
 # one SSM->env path delivers it too — custodian exports no telemetry at all when
-# it is missing. The remaining non-secret runtime config — CUSTODIAN_CORS_ALLOWLIST,
+# it is missing. The integration identifiers CUSTODIAN_STEAM_ID and
+# CUSTODIAN_GITHUB_USER are likewise non-secret but co-located here: each names
+# the account its paired secret key polls, and the poller cannot run without it.
+# The remaining non-secret runtime config — CUSTODIAN_CORS_ALLOWLIST,
 # CUSTODIAN_MEDIA_BUCKET, CUSTODIAN_MEDIA_CDN_BASE, CUSTODIAN_ADDR,
 # CUSTODIAN_DB_PATH — is set by the deploy wrapper/compose directly, never here.
 bootstrap_secrets = {
   "CUSTODIAN_ADMIN_TOKEN_HASH"   = "REPLACE_ME"                                             # hex-encoded SHA-256 of the admin bearer token
   "CUSTODIAN_OTLP_ENDPOINT"      = "https://otlp-gateway-prod-<region>.grafana.net/otlp"    # non-secret: base OTLP/HTTP gateway URL; custodian appends /v1/<signal>
   "CUSTODIAN_OTLP_AUTHORIZATION" = "REPLACE_ME"                                             # full Authorization header value, e.g. "Basic <base64(instanceID:token)>" for Grafana Cloud
-  "CUSTODIAN_STEAM_KEY"          = "REPLACE_ME" # Steam Web API key for the integration poller
-  "CUSTODIAN_GITHUB_PAT"         = "REPLACE_ME" # GitHub PAT for the activity integration poller
+  "CUSTODIAN_STEAM_KEY"          = "REPLACE_ME"                                             # Steam Web API key for the integration poller
+  "CUSTODIAN_STEAM_ID"           = "REPLACE_ME"                                             # non-secret: the 64-bit SteamID64 whose recently-played games the poller reads; an empty value makes Steam return 400
+  "CUSTODIAN_GITHUB_PAT"         = "REPLACE_ME"                                             # GitHub PAT for the activity integration poller
+  "CUSTODIAN_GITHUB_USER"        = "REPLACE_ME"                                             # non-secret: the GitHub login whose public events the poller reads; an empty value makes GitHub return 404
 }
