@@ -17,11 +17,11 @@ deploy wrapper does the SSM→env step on the box, not `deed`.
 
 **Blocked by:** 01.
 
-**Status:** ready-for-agent
+**Status:** ready-for-human — code complete on branch `deed`; SSO `apply` + human verification pending (apply is laptop-only per ADR-0001 / ticket 01).
 
-- [ ] EC2 `t4g.micro` + EBS provisioned; `user_data` installs Docker + compose plugin + AWS CLI and stops at "Docker engine running"
-- [ ] Named Docker volume for the SQLite file exists and survives container recreation
-- [ ] Box's AWS access comes solely from an IAM instance profile; no long-lived AWS key resource exists on the box
-- [ ] SSM `SecureString` params for the admin-token hash and OTLP credential are provisioned from git-ignored tfvars
-- [ ] Instance profile carries a path-scoped read grant over the bootstrap-secret prefix (no per-secret policy edit)
-- [ ] `deed` provisions only the parameters + read grant — no runtime injection of values
+- [x] EC2 `t4g.micro` + EBS provisioned; `user_data` installs Docker + compose plugin + AWS CLI and stops at "Docker engine running" — `deed/compute/main.tf` (`aws_instance.box`, gp3 `root_block_device`), `deed/compute/user_data.sh`
+- [x] Named Docker volume for the SQLite file exists and survives container recreation — `deed/compute/user_data.sh` (`docker volume create`), name in `deed/compute/variables.tf`
+- [x] Box's AWS access comes solely from an IAM instance profile; no long-lived AWS key resource exists on the box — `deed/compute/main.tf` (`aws_iam_instance_profile.box`, IMDSv2 `http_tokens = "required"`; no `aws_iam_access_key`)
+- [x] SSM `SecureString` params for the admin-token hash and OTLP credential are provisioned from git-ignored tfvars — `deed/compute/main.tf` (`aws_ssm_parameter.bootstrap`), `deed/compute/terraform.tfvars.example`
+- [x] Instance profile carries a path-scoped read grant over the bootstrap-secret prefix (no per-secret policy edit) — `deed/compute/main.tf` (`read_bootstrap_secrets`, wildcard `parameter${var.ssm_bootstrap_prefix}/*`)
+- [x] `deed` provisions only the parameters + read grant — no runtime injection of values — no image pull / secret injection / container start in `user_data.sh`
