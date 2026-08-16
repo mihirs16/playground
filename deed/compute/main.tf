@@ -22,12 +22,27 @@ data "aws_ami" "ubuntu" {
   }
 }
 
-# Egress-only: the box reaches SSM, ECR, and Docker's apt repo outbound; nothing
-# reaches in yet. Public ingress arrives with the edge (ticket 05).
+# Egress-only outbound (SSM, ECR, Docker's apt repo); the one ingress is HTTP from
+# CloudFront alone. Pinning ingress to the CloudFront origin-facing prefix list —
+# not 0.0.0.0/0 — is what lets the edge<->origin hop run over plain HTTP: no client
+# can reach the box directly, only the distribution can (edge.tf).
+#
+# description is immutable in AWS: changing it forces a replace, and this named SG
+# (no name_prefix) then dead-locks on a destroy-before-create against the running
+# instance's ENI. It is deliberately left at its ticket-02 value so adding ingress
+# stays an in-place update — the accurate description lives in this comment.
 resource "aws_security_group" "box" {
   name        = "custodian-box"
   description = "custodian box: all egress, no ingress until the edge is wired"
   vpc_id      = data.aws_vpc.default.id
+
+  ingress {
+    description     = "HTTP from CloudFront origin-facing edges"
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    prefix_list_ids = [data.aws_ec2_managed_prefix_list.cloudfront_origin_facing.id]
+  }
 
   egress {
     description = "All outbound"

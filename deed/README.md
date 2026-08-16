@@ -9,7 +9,7 @@ shared S3 backend.
 ```
 deed/
   foundation/   account wiring + backend scaffold (creates nothing)
-  compute/      custodian's box: EC2 + EBS, instance profile, SSM bootstrap secrets
+  compute/      custodian's box: EC2 + EBS, instance profile, SSM bootstrap secrets, ECR registry, data buckets, the edge (CloudFront + ACM + Route 53)
 ```
 
 ## `compute`
@@ -27,6 +27,52 @@ real values. They land in encrypted state, accepted. The instance profile carrie
 a **path-wildcard read** over that prefix, so adding a bootstrap secret later is a
 tfvars edit, not a policy edit. `deed` delivers authorization to read; the deploy
 wrapper does the SSM→env step on the box.
+
+### The registry
+
+custodian's image lives in an ECR repository the box pulls from **via its instance
+profile alone** — no long-lived registry PAT on the box (the reason GHCR was
+rejected). The instance profile carries an ECR pull grant: repository-scoped
+layer/image reads plus the registry-level `ecr:GetAuthorizationToken` (which cannot
+be resource-scoped). A lifecycle policy keeps image storage flat as versions
+accumulate — it retains the most recent `ecr_image_retention_count` images and
+expires untagged ones after a day.
+
+### The data buckets
+
+Two S3 buckets are the durable homes ADR-0001 says to rent: the **media bucket**
+custodian serves uploads from and the **SQLite-backup bucket** Litestream
+replicates the database to. Both are fully private (neither is reached directly —
+media flows through the custodian origin, the backup is internal) and both carry
+`lifecycle { prevent_destroy = true }`, so no component destroy can silently take
+unrecoverable data regardless of how `deed`'s state is later split. The safety
+invariant lives on the resource, not on the state layout. The instance profile
+carries a read/write grant (`GetObject`/`PutObject`/`DeleteObject` plus
+`ListBucket`) over both, covering custodian's media reserve/confirm flow and
+Litestream's backup.
+
+### The edge
+
+The single CloudFront distribution the whole playground fronts, with the
+custodian box as its API origin (ADR-0001). Viewers reach custodian over HTTPS at
+`var.custodian_domain_name` (`custodian.mihirsingh.dev`); the apex is persona's
+front-facing website, added in ticket 06. The distribution's public certificate is
+issued through **ACM in us-east-1** — the only region CloudFront reads viewer
+certificates from — so AWS holds the private key and no certificate material lands
+on disk. The default cache behavior forwards the whole viewer request except the
+Host header and does not cache, so custodian's auth and cookies work through the
+edge; persona's cacheable `/logs/` behavior is added in ticket 06.
+
+The box origin needs a durable address, so it carries an **Elastic IP** with an
+`origin.<custodian_domain_name>` A record; the edge<->origin hop is plain HTTP,
+locked to CloudFront alone by pinning the box's security-group ingress to the
+`com.amazonaws.global.cloudfront.origin-facing` managed prefix list.
+
+DNS is a **Route 53 hosted zone** for `var.zone_name` (the apex — custodian and
+persona both live under it); registration stays at Squarespace. **The zone's name
+servers (`route53_name_servers` output) must be set at Squarespace before an apply
+can finish** — ACM's DNS validation records resolve only once delegation is live,
+and `aws_acm_certificate_validation` blocks until they do.
 
 ### The env-var contract
 
