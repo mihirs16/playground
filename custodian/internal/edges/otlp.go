@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
@@ -55,7 +56,10 @@ func buildOTLPTelemetry(ctx context.Context, endpoint, authorization string, log
 		logger.Error("OTLP export failed", "error", err)
 	}))
 
-	res, err := resource.New(ctx, resource.WithAttributes(semconv.ServiceName("custodian")))
+	res, err := resource.New(ctx, resource.WithAttributes(
+		semconv.ServiceName("custodian"),
+		semconv.ServiceNamespace("playground"),
+	))
 	if err != nil {
 		return nil, err
 	}
@@ -66,21 +70,21 @@ func buildOTLPTelemetry(ctx context.Context, endpoint, authorization string, log
 	}
 
 	metricExporter, err := otlpmetrichttp.New(ctx,
-		otlpmetrichttp.WithEndpointURL(endpoint),
+		otlpmetrichttp.WithEndpointURL(signalURL(endpoint, "metrics")),
 		otlpmetrichttp.WithHeaders(headers),
 	)
 	if err != nil {
 		return nil, err
 	}
 	traceExporter, err := otlptracehttp.New(ctx,
-		otlptracehttp.WithEndpointURL(endpoint),
+		otlptracehttp.WithEndpointURL(signalURL(endpoint, "traces")),
 		otlptracehttp.WithHeaders(headers),
 	)
 	if err != nil {
 		return nil, err
 	}
 	logExporter, err := otlploghttp.New(ctx,
-		otlploghttp.WithEndpointURL(endpoint),
+		otlploghttp.WithEndpointURL(signalURL(endpoint, "logs")),
 		otlploghttp.WithHeaders(headers),
 	)
 	if err != nil {
@@ -140,6 +144,16 @@ func (t *otlpTelemetry) Shutdown(ctx context.Context) error {
 		}
 	}
 	return errs
+}
+
+// signalURL builds the per-signal OTLP/HTTP URL from the base endpoint, matching
+// the standard OTEL_EXPORTER_OTLP_ENDPOINT convention: the endpoint is a base
+// onto which "/v1/<signal>" is appended. custodian holds one endpoint for all
+// three signals, so it must append the suffix itself — the SDK's WithEndpointURL
+// takes the path verbatim and does not. For Grafana Cloud's ".../otlp" gateway
+// this yields ".../otlp/v1/metrics", the path its gateway serves.
+func signalURL(endpoint, signal string) string {
+	return strings.TrimRight(endpoint, "/") + "/v1/" + signal
 }
 
 func joinErr(existing, next error) error {

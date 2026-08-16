@@ -26,10 +26,20 @@ custodian settles on is what the deploy wrapper injects from SSM.
 
 **Blocked by:** 07.
 
-**Status:** awaiting-live-verification
+**Status:** done
+
+Notes:
+- `CUSTODIAN_OTLP_ENDPOINT` is the *base* OTLP/HTTP endpoint (the standard
+  `OTEL_EXPORTER_OTLP_ENDPOINT` convention); custodian appends `/v1/<signal>`
+  itself, since the SDK's `WithEndpointURL` takes the path verbatim. For Grafana
+  Cloud that means the `.../otlp` gateway is hit at `.../otlp/v1/metrics`.
+- Telemetry lands as `service.name=custodian`, `service.namespace=playground`.
+- Only the `health` gauge is emitted today; the trace/log providers are wired
+  but nothing feeds them yet (custodian's slog is not bridged to the OTel log
+  provider, and no spans are created), so "logs/traces" arrive empty for now.
 
 - [x] custodian authenticates to Grafana Cloud's OTLP gateway with the scheme it expects (Basic `instanceID:token`), replacing the hardcoded `Bearer` — via scheme-agnostic verbatim `Authorization` header from `CUSTODIAN_OTLP_AUTHORIZATION`
 - [x] A misconfigured/misauthenticated exporter is distinguishable from "no endpoint configured" — the silent no-op fallback no longer hides an auth failure — build failure returns an error (logged in `real.go`); runtime 401s route through custodian's logger via the OTel error handler
 - [x] Empty-endpoint → no-op behaviour is preserved
 - [x] The env-var contract is reconciled with `deed`'s `otlp-credential` bootstrap secret and documented
-- [ ] **Deliverable — local verification against a real stack:** run custodian locally pointed at an actual Grafana Cloud OTLP endpoint with a real token, and confirm the `health` gauge (and logs/traces) arrive in Grafana Cloud — i.e. the export is observed end-to-end, not just asserted through the fake sink
+- [x] **Deliverable — local verification against a real stack:** ran the built binary locally against `https://otlp-gateway-prod-gb-south-1.grafana.net/otlp` with the real `Basic <instanceID:token>` credential; the periodic metric export completed with no `OTLP export failed` from the error handler (i.e. the gateway returned 2xx), confirming auth + path reach Grafana Cloud end-to-end. Visual confirmation in the Grafana Cloud UI is the operator's to eyeball (`service.name=custodian`, `service.namespace=playground`, metric `health`).

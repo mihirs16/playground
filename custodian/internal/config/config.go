@@ -22,6 +22,9 @@ type Config struct {
 	// Only the hash is held; rotation is replace-and-restart.
 	AdminTokenHash string
 
+	// OTLPEndpoint is the base OTLP/HTTP endpoint, following the standard
+	// OTEL_EXPORTER_OTLP_ENDPOINT convention: custodian appends "/v1/<signal>"
+	// per signal. For Grafana Cloud this is the ".../otlp" gateway URL.
 	OTLPEndpoint string
 
 	// OTLPAuthorization is the full value of the Authorization header custodian

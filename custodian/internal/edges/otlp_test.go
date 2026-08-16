@@ -102,6 +102,24 @@ func TestOTLPTelemetryExportErrorsRouteToLogger(t *testing.T) {
 	}
 }
 
+// signalURL appends the per-signal path to the base endpoint the OTEL way, and
+// tolerates a trailing slash on the base — so Grafana Cloud's ".../otlp" gateway
+// is reached at ".../otlp/v1/metrics" whether or not the operator adds the slash.
+func TestSignalURL(t *testing.T) {
+	cases := []struct {
+		endpoint, signal, want string
+	}{
+		{"https://otlp-gateway-prod-gb-south-1.grafana.net/otlp", "metrics", "https://otlp-gateway-prod-gb-south-1.grafana.net/otlp/v1/metrics"},
+		{"https://otlp-gateway-prod-gb-south-1.grafana.net/otlp/", "traces", "https://otlp-gateway-prod-gb-south-1.grafana.net/otlp/v1/traces"},
+		{"http://localhost:4318", "logs", "http://localhost:4318/v1/logs"},
+	}
+	for _, c := range cases {
+		if got := signalURL(c.endpoint, c.signal); got != c.want {
+			t.Errorf("signalURL(%q, %q) = %q, want %q", c.endpoint, c.signal, got, c.want)
+		}
+	}
+}
+
 func discardLogger() *slog.Logger {
 	return slog.New(slog.NewJSONHandler(io.Discard, nil))
 }
