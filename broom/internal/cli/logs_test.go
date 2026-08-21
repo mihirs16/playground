@@ -17,6 +17,7 @@ import (
 type recordedRequest struct {
 	Method string
 	Path   string
+	Query  string
 	Body   map[string]any
 }
 
@@ -44,14 +45,18 @@ func newLogsFake(t *testing.T) *logsFake {
 
 func (f *logsFake) handle(w http.ResponseWriter, r *http.Request) {
 	body := decodeBody(r)
-	f.requests = append(f.requests, recordedRequest{Method: r.Method, Path: r.URL.Path, Body: body})
+	f.requests = append(f.requests, recordedRequest{Method: r.Method, Path: r.URL.Path, Query: r.URL.RawQuery, Body: body})
 
 	switch {
 	case r.Method == http.MethodGet && r.URL.Path == "/admin/v1/logs":
-		writeJSONResp(w, http.StatusOK, map[string]any{"total": 0, "items": []any{}})
+		f.listLogs(w, r.URL.Query().Get("state"))
 
 	case r.Method == http.MethodPost && r.URL.Path == "/admin/v1/logs":
 		f.createLog(w, body)
+
+	case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/admin/v1/logs/"):
+		slug := strings.TrimPrefix(r.URL.Path, "/admin/v1/logs/")
+		f.deleteLog(w, slug)
 
 	case r.Method == http.MethodPatch && strings.HasPrefix(r.URL.Path, "/admin/v1/logs/"):
 		slug := strings.TrimPrefix(r.URL.Path, "/admin/v1/logs/")
@@ -103,6 +108,28 @@ func (f *logsFake) getLog(w http.ResponseWriter, slug string) {
 		return
 	}
 	writeJSONResp(w, http.StatusOK, log)
+}
+
+// listLogs serves the stored logs on the admin surface, narrowing to a single
+// state when one is asked for, so a test can assert broom sees drafts of any
+// state and that the state filter reaches the wire.
+func (f *logsFake) listLogs(w http.ResponseWriter, state string) {
+	items := []map[string]any{}
+	for _, log := range f.logs {
+		if state == "" || log["state"] == state {
+			items = append(items, log)
+		}
+	}
+	writeJSONResp(w, http.StatusOK, map[string]any{"total": len(items), "items": items})
+}
+
+func (f *logsFake) deleteLog(w http.ResponseWriter, slug string) {
+	if f.logs[slug] == nil {
+		writeProblem(w, http.StatusNotFound, "not_found", "no log with that slug")
+		return
+	}
+	delete(f.logs, slug)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // last returns the most recent request whose method and path prefix match,
@@ -308,6 +335,125 @@ func TestLogsEditRoundTripsBody(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), "Saved body of existing") {
 		t.Errorf("stdout = %q", out.String())
+	}
+}
+
+// seedLog stores a log in the fake in the given state so management commands
+// have something to act on.
+func (f *logsFake) seedLog(slug, title string, state string) {
+	f.logs[slug] = map[string]any{
+		"slug": slug, "title": title, "state": state, "body": "",
+		"created_at": "2026-08-21T00:00:00Z", "updated_at": "2026-08-21T00:00:00Z",
+	}
+}
+
+func TestLogsListShowsAllStates(t *testing.T) {
+	fake := newLogsFake(t)
+	fake.seedLog("live-post", "Live Post", "listed")
+	fake.seedLog("draft-post", "Draft Post", "unlisted")
+	env, out, _, _ := testEnv(t, "", map[string]string{"BROOM_URL": fake.server.URL, "BROOM_TOKEN": "t"})
+
+	if err := run(env, "logs", "list"); err != nil {
+		t.Fatalf("logs list: %v", err)
+	}
+
+	list := fake.last(t, http.MethodGet, "/admin/v1/logs")
+	if list.Query != "" {
+		t.Errorf("unfiltered list should carry no state query, got %q", list.Query)
+	}
+	if !strings.Contains(out.String(), "draft-post") || !strings.Contains(out.String(), "live-post") {
+		t.Errorf("stdout = %q, want both the listed post and the hidden draft", out.String())
+	}
+}
+
+func TestLogsListFiltersByState(t *testing.T) {
+	cases := []struct {
+		flag  string
+		state string
+	}{
+		{"--unlisted", "unlisted"},
+		{"--listed", "listed"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.flag, func(t *testing.T) {
+			fake := newLogsFake(t)
+			fake.seedLog("live-post", "Live Post", "listed")
+			fake.seedLog("draft-post", "Draft Post", "unlisted")
+			env, _, _, _ := testEnv(t, "", map[string]string{"BROOM_URL": fake.server.URL, "BROOM_TOKEN": "t"})
+
+			if err := run(env, "logs", "list", tc.flag); err != nil {
+				t.Fatalf("logs list %s: %v", tc.flag, err)
+			}
+			list := fake.last(t, http.MethodGet, "/admin/v1/logs")
+			if !strings.Contains(list.Query, "state="+tc.state) {
+				t.Errorf("query = %q, want state=%s", list.Query, tc.state)
+			}
+		})
+	}
+}
+
+func TestLogsListRejectsConflictingFilters(t *testing.T) {
+	fake := newLogsFake(t)
+	env, _, _, _ := testEnv(t, "", map[string]string{"BROOM_URL": fake.server.URL, "BROOM_TOKEN": "t"})
+
+	if err := run(env, "logs", "list", "--listed", "--unlisted"); err == nil {
+		t.Fatal("listed and unlisted together should be rejected")
+	}
+}
+
+func TestLogsPublishPatchesStateListed(t *testing.T) {
+	fake := newLogsFake(t)
+	fake.seedLog("draft-post", "Draft Post", "unlisted")
+	env, out, _, _ := testEnv(t, "", map[string]string{"BROOM_URL": fake.server.URL, "BROOM_TOKEN": "t"})
+
+	if err := run(env, "logs", "publish", "draft-post"); err != nil {
+		t.Fatalf("logs publish: %v", err)
+	}
+	patch := fake.last(t, http.MethodPatch, "/admin/v1/logs/draft-post")
+	if patch.Body["state"] != "listed" {
+		t.Errorf("publish patched state = %v, want listed", patch.Body["state"])
+	}
+	if _, hasBody := patch.Body["body"]; hasBody {
+		t.Errorf("publish must patch only state, body carried %v", patch.Body)
+	}
+	if !strings.Contains(out.String(), "Published draft-post") {
+		t.Errorf("stdout = %q, want the published line", out.String())
+	}
+}
+
+func TestLogsUnpublishPatchesStateUnlisted(t *testing.T) {
+	fake := newLogsFake(t)
+	fake.seedLog("live-post", "Live Post", "listed")
+	env, out, _, _ := testEnv(t, "", map[string]string{"BROOM_URL": fake.server.URL, "BROOM_TOKEN": "t"})
+
+	if err := run(env, "logs", "unpublish", "live-post"); err != nil {
+		t.Fatalf("logs unpublish: %v", err)
+	}
+	patch := fake.last(t, http.MethodPatch, "/admin/v1/logs/live-post")
+	if patch.Body["state"] != "unlisted" {
+		t.Errorf("unpublish patched state = %v, want unlisted", patch.Body["state"])
+	}
+	if !strings.Contains(out.String(), "Unpublished live-post") {
+		t.Errorf("stdout = %q, want the unpublished line", out.String())
+	}
+}
+
+func TestLogsRmDeletes(t *testing.T) {
+	fake := newLogsFake(t)
+	fake.seedLog("draft-post", "Draft Post", "unlisted")
+	env, out, _, _ := testEnv(t, "", map[string]string{"BROOM_URL": fake.server.URL, "BROOM_TOKEN": "t"})
+
+	if err := run(env, "logs", "rm", "draft-post"); err != nil {
+		t.Fatalf("logs rm: %v", err)
+	}
+	if fake.count(http.MethodDelete, "/admin/v1/logs/draft-post") != 1 {
+		t.Errorf("want one delete, got %d", fake.count(http.MethodDelete, "/admin/v1/logs/draft-post"))
+	}
+	if fake.logs["draft-post"] != nil {
+		t.Error("the log should be gone after rm")
+	}
+	if !strings.Contains(out.String(), "Deleted draft-post") {
+		t.Errorf("stdout = %q, want the deleted line", out.String())
 	}
 }
 

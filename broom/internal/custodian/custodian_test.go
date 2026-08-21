@@ -63,6 +63,21 @@ func TestAPIErrorListsFieldErrors(t *testing.T) {
 	}
 }
 
+func TestAPIErrorFrozenSlugReadsAsGuidance(t *testing.T) {
+	err := &APIError{Status: 409, Problem: &apiclient.Problem{
+		Code:   "slug_frozen_while_listed",
+		Title:  "Conflict",
+		Detail: strptr("a listed log's slug cannot change"),
+	}}
+	got := err.Error()
+	if !strings.Contains(got, "published links are frozen") {
+		t.Errorf("Error() = %q, want the frozen-links guidance", got)
+	}
+	if !strings.Contains(got, "a listed log's slug cannot change") {
+		t.Errorf("Error() = %q, want the detail retained", got)
+	}
+}
+
 func TestIsUnauthorized(t *testing.T) {
 	cases := []struct {
 		name string

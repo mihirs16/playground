@@ -136,6 +136,8 @@ func headline(p *apiclient.Problem) string {
 	switch p.Code {
 	case "unauthorized":
 		return "not logged in or token rejected: " + detail
+	case "slug_frozen_while_listed":
+		return "published links are frozen — unpublish before renaming: " + detail
 	default:
 		return detail
 	}

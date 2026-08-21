@@ -14,10 +14,10 @@ published links are deliberately frozen.
 
 **Blocked by:** 02.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `logs list` shows posts of any state; `--listed`/`--unlisted` filter accordingly, including drafts hidden from the public index
-- [ ] `logs publish`/`unpublish` toggle state via `PATCH {state}` (listed/unlisted), no bespoke endpoint
-- [ ] `logs rm <slug>` deletes a post
-- [ ] `slug_frozen_while_listed` is surfaced as a clear "published links are frozen" message
-- [ ] All three verbs exercised through the fake custodian, asserting method/path/body of each request
+- [x] `logs list` shows posts of any state; `--listed`/`--unlisted` filter accordingly, including drafts hidden from the public index
+- [x] `logs publish`/`unpublish` toggle state via `PATCH {state}` (listed/unlisted), no bespoke endpoint
+- [x] `logs rm <slug>` deletes a post
+- [x] `slug_frozen_while_listed` is surfaced as a clear "published links are frozen" message
+- [x] All three verbs exercised through the fake custodian, asserting method/path/body of each request

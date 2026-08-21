@@ -12,7 +12,7 @@ import (
 func TestAuthedCommandWithoutCredentialFailsClearly(t *testing.T) {
 	env, _, _, _ := testEnv(t, "", nil)
 
-	err := run(env, "logs", "list")
+	err := run(env, "logs", "meta", "some-slug")
 	if err == nil {
 		t.Fatal("an authed command without a token should fail")
 	}
@@ -30,7 +30,7 @@ func TestEnvTokenSatisfiesCredentialGate(t *testing.T) {
 		"BROOM_TOKEN": "env-token",
 	})
 
-	err := run(env, "logs", "list")
+	err := run(env, "logs", "meta", "some-slug")
 	if err == nil {
 		t.Fatal("stubbed command should still return a not-implemented error")
 	}
@@ -50,7 +50,7 @@ func TestPersistedTokenIsUsedFromFile(t *testing.T) {
 		t.Fatalf("seed config: %v", err)
 	}
 
-	err := run(env, "logs", "list")
+	err := run(env, "logs", "meta", "some-slug")
 	if err == nil || strings.Contains(err.Error(), "not logged in") {
 		t.Fatalf("file token should satisfy the gate, got: %v", err)
 	}
