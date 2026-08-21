@@ -30,8 +30,7 @@ type Config struct {
 	Token string
 }
 
-// file is the on-disk shape. URL and token live together in one file (ticket 17
-// added the URL beside the token ticket 10 settled).
+// file is the on-disk shape: URL and token stored together.
 type file struct {
 	URL   string `json:"url,omitempty"`
 	Token string `json:"token,omitempty"`
@@ -89,10 +88,16 @@ func load(path string) (file, error) {
 // Save writes url + token to the config file at 0600, creating the parent
 // directory if needed. It always writes both fields together.
 func Save(path string, c Config) error {
+	return write(path, file{URL: c.URL, Token: c.Token})
+}
+
+// write persists a config file at 0600, creating the parent directory if
+// needed. It is the single place the on-disk secret's permission is set.
+func write(path string, f file) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
 	}
-	data, err := json.MarshalIndent(file{URL: c.URL, Token: c.Token}, "", "  ")
+	data, err := json.MarshalIndent(f, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -111,9 +116,5 @@ func ClearToken(path string) error {
 		return nil
 	}
 	stored.Token = ""
-	data, err := json.MarshalIndent(stored, "", "  ")
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(path, data, FileMode)
+	return write(path, stored)
 }

@@ -105,8 +105,8 @@ func promptSecret(env Env, prompt string) (string, error) {
 	return line, nil
 }
 
-// notImplemented is the placeholder body for a stubbed subcommand: the wiring is
-// live, the behaviour lands in a later ticket.
+// notImplemented reports a subcommand whose wiring is live but whose behaviour
+// is not built.
 func notImplemented(what string) error {
 	return fmt.Errorf("%s is not implemented yet", what)
 }

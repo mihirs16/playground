@@ -20,6 +20,21 @@ func TestAPIErrorRendersDetail(t *testing.T) {
 	}
 }
 
+func TestAPIErrorBranchesOnCode(t *testing.T) {
+	err := &APIError{Status: 401, Problem: &apiclient.Problem{
+		Code:   "unauthorized",
+		Title:  "Unauthorized",
+		Detail: strptr("a valid admin bearer token is required"),
+	}}
+	got := err.Error()
+	if !strings.HasPrefix(got, "not logged in or token rejected:") {
+		t.Errorf("Error() = %q, want the unauthorized headline", got)
+	}
+	if !strings.Contains(got, "a valid admin bearer token is required") {
+		t.Errorf("Error() = %q, want the detail retained", got)
+	}
+}
+
 func TestAPIErrorFallsBackToTitleWithoutDetail(t *testing.T) {
 	err := &APIError{Status: 500, Problem: &apiclient.Problem{Code: "internal", Title: "Internal Server Error"}}
 	if got := err.Error(); got != "Internal Server Error" {

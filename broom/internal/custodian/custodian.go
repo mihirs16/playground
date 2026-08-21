@@ -10,6 +10,7 @@ package custodian
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -115,11 +116,7 @@ func (e *APIError) Error() string {
 	}
 
 	var b strings.Builder
-	if e.Problem.Detail != nil && *e.Problem.Detail != "" {
-		b.WriteString(*e.Problem.Detail)
-	} else {
-		b.WriteString(e.Problem.Title)
-	}
+	b.WriteString(headline(e.Problem))
 	if e.Problem.Errors != nil {
 		for _, fe := range *e.Problem.Errors {
 			fmt.Fprintf(&b, "\n  - %s: %s", fe.Field, fe.Message)
@@ -128,12 +125,28 @@ func (e *APIError) Error() string {
 	return b.String()
 }
 
+// headline turns a problem into its leading message, branching on the stable
+// code so a rejection reads as guidance. Unrecognised codes fall back to the
+// custodian-supplied detail (or title), which is always safe to show verbatim.
+func headline(p *apiclient.Problem) string {
+	detail := p.Title
+	if p.Detail != nil && *p.Detail != "" {
+		detail = *p.Detail
+	}
+	switch p.Code {
+	case "unauthorized":
+		return "not logged in or token rejected: " + detail
+	default:
+		return detail
+	}
+}
+
 // IsUnauthorized reports whether err is custodian rejecting the credential, so
 // callers can render the not-logged-in / token-rejected message instead of a
 // generic failure.
 func IsUnauthorized(err error) bool {
-	apiErr, ok := err.(*APIError)
-	if !ok {
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) {
 		return false
 	}
 	return apiErr.Status == http.StatusUnauthorized || apiErr.Code() == "unauthorized"
