@@ -14,12 +14,16 @@ default:
     @just --list
 
 # Regenerate all code fanned out from the OpenAPI contract.
-gen: gen-custodian
+gen: gen-custodian gen-broom
 
 # Fan custodian's OpenAPI spec into server interfaces and a vendored client.
 gen-custodian:
     cd custodian && {{oapi_codegen}} -config internal/api/api.cfg.yaml openapi/custodian.yaml
     cd custodian && {{oapi_codegen}} -config internal/apiclient/apiclient.cfg.yaml openapi/custodian.yaml
+
+# Fan custodian's OpenAPI spec into broom's vendored client (same contract).
+gen-broom:
+    cd broom && {{oapi_codegen}} -config internal/apiclient/apiclient.cfg.yaml ../custodian/openapi/custodian.yaml
 
 # CI drift gate: regenerate, then fail if anything changed.
 gen-check: gen

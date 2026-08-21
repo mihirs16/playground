@@ -1,0 +1,73 @@
+package custodian
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/mihirs16/playground/broom/internal/apiclient"
+)
+
+func strptr(s string) *string { return &s }
+
+func TestAPIErrorRendersDetail(t *testing.T) {
+	err := &APIError{Status: 409, Problem: &apiclient.Problem{
+		Code:   "slug_conflict",
+		Title:  "Conflict",
+		Detail: strptr("a log with that slug already exists"),
+	}}
+	if got := err.Error(); got != "a log with that slug already exists" {
+		t.Errorf("Error() = %q, want the detail string", got)
+	}
+}
+
+func TestAPIErrorFallsBackToTitleWithoutDetail(t *testing.T) {
+	err := &APIError{Status: 500, Problem: &apiclient.Problem{Code: "internal", Title: "Internal Server Error"}}
+	if got := err.Error(); got != "Internal Server Error" {
+		t.Errorf("Error() = %q, want the title", got)
+	}
+}
+
+func TestAPIErrorListsFieldErrors(t *testing.T) {
+	err := &APIError{Status: 422, Problem: &apiclient.Problem{
+		Code:   "validation_failed",
+		Detail: strptr("the request body failed validation"),
+		Errors: &[]apiclient.FieldError{
+			{Field: "title", Message: "is required"},
+			{Field: "slug", Message: "must be kebab-case"},
+		},
+	}}
+	got := err.Error()
+	for _, want := range []string{
+		"the request body failed validation",
+		"- title: is required",
+		"- slug: must be kebab-case",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("Error() = %q, missing %q", got, want)
+		}
+	}
+}
+
+func TestIsUnauthorized(t *testing.T) {
+	cases := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{"401 status", &APIError{Status: 401, Problem: &apiclient.Problem{Code: "unauthorized"}}, true},
+		{"unauthorized code only", &APIError{Status: 403, Problem: &apiclient.Problem{Code: "unauthorized"}}, true},
+		{"other api error", &APIError{Status: 409, Problem: &apiclient.Problem{Code: "slug_conflict"}}, false},
+		{"transport error", &TransportError{URL: "x", Err: errString("boom")}, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := IsUnauthorized(tc.err); got != tc.want {
+				t.Errorf("IsUnauthorized = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+type errString string
+
+func (e errString) Error() string { return string(e) }
