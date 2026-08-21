@@ -70,3 +70,9 @@ aws ecr get-login-password --region "$AWS_REGION" \
 # a rotated secret takes effect.
 docker compose pull
 docker compose up -d --remove-orphans --force-recreate
+
+# The registry token has done its one job (the pull above); drop it so it does
+# not linger in plaintext at ~/.docker/config.json. Runtime — compose logs,
+# restarts — needs no registry auth, and the next deploy logs in again. Tolerate
+# a no-op logout so a re-run never fails here.
+docker logout "$registry" || true
