@@ -28,6 +28,7 @@ type Env struct {
 	Stderr     io.Writer
 	Getenv     func(string) string
 	ConfigPath string
+	Edit       EditorFunc
 }
 
 // errNotLoggedIn is the single message any command shows when no usable
@@ -103,6 +104,36 @@ func promptSecret(env Env, prompt string) (string, error) {
 		return "", err
 	}
 	return line, nil
+}
+
+// prompter reads a sequence of interactive answers from one buffered view of
+// stdin, so consecutive prompts don't lose input to per-read buffering. Prompts
+// are written to stderr, leaving stdout free for a command's real output.
+type prompter struct {
+	in  *bufio.Reader
+	out io.Writer
+	eof bool
+}
+
+func newPrompter(env Env) *prompter {
+	return &prompter{in: bufio.NewReader(env.Stdin), out: env.Stderr}
+}
+
+// line reads one answer, showing label first. A trailing newline and surrounding
+// whitespace are trimmed; EOF yields whatever was read (possibly empty), so an
+// unterminated final answer is not lost. Once EOF is seen it is remembered, so a
+// caller that must have an answer can stop rather than re-prompting into a
+// closed stdin forever.
+func (p *prompter) line(label string) (string, error) {
+	fmt.Fprint(p.out, label)
+	s, err := p.in.ReadString('\n')
+	s = strings.TrimSpace(s)
+	if errors.Is(err, io.EOF) {
+		p.eof = true
+	} else if err != nil {
+		return "", err
+	}
+	return s, nil
 }
 
 // notImplemented reports a subcommand whose wiring is live but whose behaviour

@@ -14,21 +14,6 @@ func authedStub(env Env, what string) func(*cobra.Command, []string) error {
 	}
 }
 
-func newLogsCmd(env Env) *cobra.Command {
-	cmd := &cobra.Command{Use: "logs", Short: "Author and manage logs"}
-	cmd.AddCommand(
-		&cobra.Command{Use: "new", Short: "Create a log and edit its body", RunE: authedStub(env, "logs new")},
-		&cobra.Command{Use: "edit <slug>", Short: "Edit a log's body", Args: cobra.ExactArgs(1), RunE: authedStub(env, "logs edit")},
-		&cobra.Command{Use: "meta <slug>", Short: "Edit a log's metadata", Args: cobra.ExactArgs(1), RunE: authedStub(env, "logs meta")},
-		&cobra.Command{Use: "rename <slug> <new-slug>", Short: "Rename an unlisted log's slug", Args: cobra.ExactArgs(2), RunE: authedStub(env, "logs rename")},
-		&cobra.Command{Use: "list", Short: "List logs in any state", RunE: authedStub(env, "logs list")},
-		&cobra.Command{Use: "rm <slug>", Short: "Delete a log", Args: cobra.ExactArgs(1), RunE: authedStub(env, "logs rm")},
-		&cobra.Command{Use: "publish <slug>", Short: "List a log in the public index", Args: cobra.ExactArgs(1), RunE: authedStub(env, "logs publish")},
-		&cobra.Command{Use: "unpublish <slug>", Short: "Remove a log from the public index", Args: cobra.ExactArgs(1), RunE: authedStub(env, "logs unpublish")},
-	)
-	return cmd
-}
-
 func newMediaCmd(env Env) *cobra.Command {
 	cmd := &cobra.Command{Use: "media", Short: "Upload and manage media"}
 	cmd.AddCommand(

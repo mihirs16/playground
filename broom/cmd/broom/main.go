@@ -24,6 +24,7 @@ func main() {
 		Stderr:     os.Stderr,
 		Getenv:     os.Getenv,
 		ConfigPath: configPath,
+		Edit:       cli.RealEditor(os.Getenv),
 	})
 
 	if err := root.ExecuteContext(context.Background()); err != nil {
