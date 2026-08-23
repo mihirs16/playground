@@ -29,6 +29,7 @@ type Env struct {
 	Getenv     func(string) string
 	ConfigPath string
 	Edit       EditorFunc
+	Copy       ClipboardFunc
 }
 
 // errNotLoggedIn is the single message any command shows when no usable

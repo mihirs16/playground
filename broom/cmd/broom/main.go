@@ -25,6 +25,7 @@ func main() {
 		Getenv:     os.Getenv,
 		ConfigPath: configPath,
 		Edit:       cli.RealEditor(os.Getenv),
+		Copy:       cli.RealClipboard(),
 	})
 
 	if err := root.ExecuteContext(context.Background()); err != nil {

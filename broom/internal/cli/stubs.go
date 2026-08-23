@@ -14,16 +14,6 @@ func authedStub(env Env, what string) func(*cobra.Command, []string) error {
 	}
 }
 
-func newMediaCmd(env Env) *cobra.Command {
-	cmd := &cobra.Command{Use: "media", Short: "Upload and manage media"}
-	cmd.AddCommand(
-		&cobra.Command{Use: "add <file>", Short: "Upload a file and print its markdown reference", Args: cobra.ExactArgs(1), RunE: authedStub(env, "media add")},
-		&cobra.Command{Use: "ls", Short: "List and search media", RunE: authedStub(env, "media ls")},
-		&cobra.Command{Use: "rm <key>", Short: "Delete a media record", Args: cobra.ExactArgs(1), RunE: authedStub(env, "media rm")},
-	)
-	return cmd
-}
-
 func newProfileCmd(env Env) *cobra.Command {
 	cmd := &cobra.Command{Use: "profile", Short: "Inspect and edit profile records"}
 	cmd.AddCommand(
