@@ -14,15 +14,6 @@ func authedStub(env Env, what string) func(*cobra.Command, []string) error {
 	}
 }
 
-func newProfileCmd(env Env) *cobra.Command {
-	cmd := &cobra.Command{Use: "profile", Short: "Inspect and edit profile records"}
-	cmd.AddCommand(
-		&cobra.Command{Use: "get <key>", Short: "Show a profile record's JSON", Args: cobra.ExactArgs(1), RunE: authedStub(env, "profile get")},
-		&cobra.Command{Use: "edit <key>", Short: "Edit a profile record's JSON", Args: cobra.ExactArgs(1), RunE: authedStub(env, "profile edit")},
-	)
-	return cmd
-}
-
 func newIntegrationCmd(env Env) *cobra.Command {
 	cmd := &cobra.Command{Use: "integration", Short: "Manage derived third-party content"}
 	cmd.AddCommand(
