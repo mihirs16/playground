@@ -88,7 +88,10 @@ func runMediaAdd(env Env) func(*cobra.Command, []string) error {
 		reservation, err := client.ReserveMedia(cmd.Context(), reserve)
 		if err != nil {
 			if custodian.IsMediaKeyTaken(err) {
-				return fmt.Errorf("key %q is already taken — choose another --key or reuse it with `broom media ls`", *reserve.Key)
+				if reserve.Key != nil {
+					return fmt.Errorf("key %q is already taken — choose another --key or reuse it with `broom media ls`", *reserve.Key)
+				}
+				return fmt.Errorf("the minted key collided with an existing one — retry the upload")
 			}
 			return err
 		}

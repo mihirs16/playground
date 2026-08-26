@@ -336,6 +336,27 @@ func TestMediaAddDuplicateKeyReportedLegibly(t *testing.T) {
 	}
 }
 
+// When --key is omitted, reserve.Key is nil; a media_key_taken answer (a minted
+// key colliding) must report legibly rather than dereferencing the nil key.
+func TestMediaAddMintedKeyCollisionReportedLegibly(t *testing.T) {
+	fake := newMediaFake(t)
+	fake.taken["minted-random-key"] = true // the key the fake mints for an omitted --key
+	env, _, _, _ := testEnv(t, "", map[string]string{"BROOM_URL": fake.server.URL, "BROOM_TOKEN": "t"})
+	env.Copy = (&fakeClipboard{}).copy
+	file := writeTempFile(t, "pic.png", "x")
+
+	err := run(env, "media", "add", file)
+	if err == nil {
+		t.Fatal("a minted-key collision must fail, not panic or overwrite")
+	}
+	if !strings.Contains(err.Error(), "collided") {
+		t.Errorf("error = %q, want the minted-collision message", err.Error())
+	}
+	if len(fake.uploaded) != 0 {
+		t.Errorf("a rejected reserve must not upload, uploaded %v", fake.uploaded)
+	}
+}
+
 func TestMediaLsListsAndSearches(t *testing.T) {
 	fake := newMediaFake(t)
 	fake.seedMedia("hero-shot", "available")
