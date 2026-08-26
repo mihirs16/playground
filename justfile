@@ -37,6 +37,11 @@ build component="custodian":
 build-custodian-release:
     cd custodian && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o custodian ./cmd/custodian
 
+# Build broom from source and install it onto PATH (go install -> GOBIN/GOPATH bin).
+# Build-from-source only — no published artifact, tap, or release binary in v1.
+install:
+    cd broom && go install ./cmd/broom
+
 # Run a component's tests (default: custodian).
 test component="custodian":
     cd {{component}} && go test ./...
