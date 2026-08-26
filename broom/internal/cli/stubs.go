@@ -13,11 +13,3 @@ func authedStub(env Env, what string) func(*cobra.Command, []string) error {
 		return notImplemented(what)
 	}
 }
-
-func newIntegrationCmd(env Env) *cobra.Command {
-	cmd := &cobra.Command{Use: "integration", Short: "Manage derived third-party content"}
-	cmd.AddCommand(
-		&cobra.Command{Use: "refresh [name]", Short: "Force custodian to poll a source now", Args: cobra.MaximumNArgs(1), RunE: authedStub(env, "integration refresh")},
-	)
-	return cmd
-}

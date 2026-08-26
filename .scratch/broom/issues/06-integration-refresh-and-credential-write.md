@@ -11,8 +11,16 @@ stored by broom.
 
 **Blocked by:** 01.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `integration refresh [name]` forces custodian's manual `/refresh` and prints the fresh record
-- [ ] A credential written through broom is an authed admin API call; broom never stores it locally
-- [ ] Both exercised through the fake custodian, asserting the requests issued
+- [x] `integration refresh [name]` forces custodian's manual `/refresh` and prints the fresh record
+- [ ] ~~A credential written through broom is an authed admin API call; broom never stores it locally~~
+- [x] Both exercised through the fake custodian, asserting the requests issued
+
+**Note (2026-08-26):** Credential write dropped. Custodian resolves each source's
+credential from its deploy-time environment (see `poller.go`: keys are read
+env-at-startup) and exposes no credential-write endpoint — the only integration
+admin path is `.../refresh`. So key rotation is a custodian deploy concern, not a
+broom terminal gesture. Only `integration refresh` is implemented: named to poll
+one source, or bare to fan out over all known sources (`steam`, `github`), with a
+failed poll surfaced as an error.
