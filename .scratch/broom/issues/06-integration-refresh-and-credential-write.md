@@ -21,6 +21,10 @@ stored by broom.
 credential from its deploy-time environment (see `poller.go`: keys are read
 env-at-startup) and exposes no credential-write endpoint — the only integration
 admin path is `.../refresh`. So key rotation is a custodian deploy concern, not a
-broom terminal gesture. Only `integration refresh` is implemented: named to poll
-one source, or bare to fan out over all known sources (`steam`, `github`), with a
+broom terminal gesture. `integration refresh` is implemented: named to poll one
+source, or bare to fan out over all known sources (`steam`, `github`), with a
 failed poll surfaced as an error.
+
+Also added `integration get [name]` over custodian's public read
+(`GET /v1/integrations/{source}`): prints the last stored record without forcing
+a poll, including the empty-but-present shape for a source never polled.

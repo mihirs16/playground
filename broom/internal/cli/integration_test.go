@@ -17,11 +17,12 @@ type integrationFake struct {
 	server      *httptest.Server
 	requests    []recordedRequest
 	unreachable map[string]bool
+	stored      map[string]map[string]any // source -> last stored record served by the public GET
 }
 
 func newIntegrationFake(t *testing.T) *integrationFake {
 	t.Helper()
-	f := &integrationFake{unreachable: map[string]bool{}}
+	f := &integrationFake{unreachable: map[string]bool{}, stored: map[string]map[string]any{}}
 	f.server = httptest.NewServer(http.HandlerFunc(f.handle))
 	t.Cleanup(f.server.Close)
 	return f
@@ -30,12 +31,31 @@ func newIntegrationFake(t *testing.T) *integrationFake {
 func (f *integrationFake) handle(w http.ResponseWriter, r *http.Request) {
 	f.requests = append(f.requests, recordedRequest{Method: r.Method, Path: r.URL.Path, Query: r.URL.RawQuery, Body: decodeBody(r)})
 
-	if r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/admin/v1/integrations/") && strings.HasSuffix(r.URL.Path, "/refresh") {
+	switch {
+	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/admin/v1/integrations/") && strings.HasSuffix(r.URL.Path, "/refresh"):
 		source := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/admin/v1/integrations/"), "/refresh")
 		f.refresh(w, source)
+	case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/v1/integrations/"):
+		source := strings.TrimPrefix(r.URL.Path, "/v1/integrations/")
+		f.get(w, source)
+	default:
+		w.WriteHeader(http.StatusNotFound)
+	}
+}
+
+// get serves the public read: the last stored record for a source, or the legal
+// empty-but-present shape (zero timestamp, null data) for a source never polled.
+// It never forces a poll and never errors.
+func (f *integrationFake) get(w http.ResponseWriter, source string) {
+	if record := f.stored[source]; record != nil {
+		writeJSONResp(w, http.StatusOK, record)
 		return
 	}
-	w.WriteHeader(http.StatusNotFound)
+	writeJSONResp(w, http.StatusOK, map[string]any{
+		"source":     source,
+		"fetched_at": "0001-01-01T00:00:00Z",
+		"data":       nil,
+	})
 }
 
 // refresh answers a forced poll: a fresh record for a reachable source, or the
@@ -60,6 +80,62 @@ func (f *integrationFake) count(method, pathPrefix string) int {
 		}
 	}
 	return n
+}
+
+// A named get reads that source's public record without forcing a poll: it hits
+// the public GET, never the admin refresh endpoint.
+func TestIntegrationGetNamedSource(t *testing.T) {
+	fake := newIntegrationFake(t)
+	fake.stored["steam"] = map[string]any{
+		"source":     "steam",
+		"fetched_at": "2026-08-26T09:00:00Z",
+		"data":       map[string]any{"status": "in game"},
+	}
+	env, out, _, _ := testEnv(t, "", map[string]string{"BROOM_URL": fake.server.URL, "BROOM_TOKEN": "t"})
+
+	if err := run(env, "integration", "get", "steam"); err != nil {
+		t.Fatalf("integration get steam: %v", err)
+	}
+
+	if got := fake.count(http.MethodGet, "/v1/integrations/steam"); got != 1 {
+		t.Errorf("want one public GET for steam, got %d among %+v", got, fake.requests)
+	}
+	if fake.count(http.MethodPost, "/admin/v1/integrations/") != 0 {
+		t.Error("get must not force a poll")
+	}
+	if !strings.Contains(out.String(), "in game") {
+		t.Errorf("stdout = %q, want the stored steam record", out.String())
+	}
+}
+
+// Bare get fans out over every known source's public read.
+func TestIntegrationGetAllSources(t *testing.T) {
+	fake := newIntegrationFake(t)
+	env, out, _, _ := testEnv(t, "", map[string]string{"BROOM_URL": fake.server.URL, "BROOM_TOKEN": "t"})
+
+	if err := run(env, "integration", "get"); err != nil {
+		t.Fatalf("integration get: %v", err)
+	}
+	if fake.count(http.MethodGet, "/v1/integrations/steam") != 1 || fake.count(http.MethodGet, "/v1/integrations/github") != 1 {
+		t.Errorf("want one public GET per source, got %+v", fake.requests)
+	}
+	if !strings.Contains(out.String(), "steam") || !strings.Contains(out.String(), "github") {
+		t.Errorf("stdout = %q, want both sources", out.String())
+	}
+}
+
+// A source never polled yet reads as the empty-but-present shape: never-fetched,
+// no data — spelled out, not a zero timestamp or bare null.
+func TestIntegrationGetNeverPolledSource(t *testing.T) {
+	fake := newIntegrationFake(t)
+	env, out, _, _ := testEnv(t, "", map[string]string{"BROOM_URL": fake.server.URL, "BROOM_TOKEN": "t"})
+
+	if err := run(env, "integration", "get", "github"); err != nil {
+		t.Fatalf("integration get github: %v", err)
+	}
+	if !strings.Contains(out.String(), "never fetched") || !strings.Contains(out.String(), "no data observed") {
+		t.Errorf("stdout = %q, want the empty-but-present shape spelled out", out.String())
+	}
 }
 
 // A named refresh POSTs to that one source's refresh endpoint and prints the
