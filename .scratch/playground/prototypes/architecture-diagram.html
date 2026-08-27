@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Exploded Axonometric — massing / landscape</title>
+<style>
+  html,body{margin:0;background:#ffffff}
+  #scroll{height:360vh;position:relative}                      /* scroll runway */
+  #stage{position:sticky;top:0;height:100vh;display:flex;align-items:center;justify-content:center}
+  svg{height:min(96vh,760px);aspect-ratio:460/600;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace}
+  #hint{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);font:11px/1 "SF Mono",monospace;
+    letter-spacing:.28em;text-transform:uppercase;color:#9a9a9a}
+</style>
+</head>
+<body>
+<div id="scroll"><div id="stage"><svg id="svg" viewBox="0 0 460 600" preserveAspectRatio="xMidYMid meet"></svg></div></div>
+<div id="hint">scroll to explode ↓</div>
+<script>
+/* =========================================================================
+   Exploded axonometric of a mixed-use scheme:
+   ground landscape  ->  podium plate  ->  upper deck  ->  slab towers,
+   linked by dashed vertical drop-lines. Pure generated SVG.
+   ========================================================================= */
+const NS="http://www.w3.org/2000/svg", svg=document.getElementById("svg");
+const S=15.5, A=S*0.866, B=S*0.5, OX=230, OY=205;   // iso projection params
+const CX=7, CY=7;                                    // site centre (rotation pivot)
+let ROT=0;                                           // vertical-axis (turntable) angle, radians
+function P(x,y,z){
+  // rotate (x,y) about the vertical axis through the site centre, THEN project
+  const dx=x-CX, dy=y-CY, c=Math.cos(ROT), s=Math.sin(ROT);
+  const rx=CX+dx*c-dy*s, ry=CY+dx*s+dy*c;
+  return [OX+(rx-ry)*A, OY+(rx+ry)*B - z];
+}
+
+function el(tag,attrs){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
+function poly(pts,attrs){const p=el("polygon",attrs);p.setAttribute("points",pts.map(q=>q.join(",")).join(" "));return svg.appendChild(p);}
+function line(a,b,attrs){return svg.appendChild(el("line",Object.assign({x1:a[0],y1:a[1],x2:b[0],y2:b[1]},attrs)));}
+
+const COL={top:"#f6f6f4",left:"#dcdcda",right:"#eaeae8",stroke:"#3a3a3a",
+  greenTop:"#c3d6ac",greenL:"#a7bf8c",greenR:"#b7cc9d",
+  water:"#bfe0e6",glassL:"#cfd6da",glassR:"#dfe5e8",
+  route1:"#d0592f",route2:"#2f8f96",tree:"#8fb072",treeD:"#6f9257",drop:"#b9b9b9"};
+
+/* rotated ground-plane depth of a point — bigger = nearer the viewer */
+function depthAt(x,y){const dx=x-CX,dy=y-CY;
+  return (dx*Math.cos(ROT)-dy*Math.sin(ROT))+(dx*Math.sin(ROT)+dy*Math.cos(ROT));}
+
+/* draw an extruded prism: footprint rect (x,y,w,d), top surface at z, height h.
+   Draws ALL FOUR side faces back-to-front (painter's order) so no face is ever
+   missing as the model turntables past 90°, then the top face last. */
+function prism(x,y,w,d,z,h,c){
+  const tc=c||COL;
+  const x1=x+w,y1=y+d,zb=z-h,st={stroke:tc.stroke,"stroke-width":.7,"stroke-linejoin":"round"};
+  if(h>0){
+    const sides=[
+      {face:[[x1,y],[x1,y1]],fill:tc.right, mx:x1,       my:(y+y1)/2}, // +x
+      {face:[[x, y],[x, y1]],fill:tc.right, mx:x,        my:(y+y1)/2}, // -x
+      {face:[[x, y1],[x1,y1]],fill:tc.left, mx:(x+x1)/2, my:y1},       // +y
+      {face:[[x, y ],[x1,y ]],fill:tc.left, mx:(x+x1)/2, my:y},        // -y
+    ];
+    sides.sort((a,b)=>depthAt(a.mx,a.my)-depthAt(b.mx,b.my)); // far first
+    sides.forEach(s=>{const[[ax,ay],[bx,by]]=s.face;
+      poly([P(ax,ay,z),P(bx,by,z),P(bx,by,zb),P(ax,ay,zb)],Object.assign({fill:s.fill},st));});
+  }
+  // top face last — always visible from above
+  poly([P(x,y,z),P(x1,y,z),P(x1,y1,z),P(x,y1,z)],Object.assign({fill:tc.top},st));
+}
+/* floor striations on a tower's front face to suggest storeys */
+function storeys(x,y,w,d,z,h,n){
+  const x1=x+w,y1=y+d;
+  for(let i=1;i<n;i++){const zz=z-(h/n)*i;
+    line(P(x1,y1,zz),P(x,y1,zz),{stroke:"#00000022","stroke-width":.5});
+    line(P(x1,y,zz),P(x1,y1,zz),{stroke:"#00000018","stroke-width":.5});
+  }
+}
+function slab(x,y,w,d,z,c){prism(x,y,w,d,z,2.5,c);}      // thin plate
+function tree(x,y,z,r=2.2){
+  const [sx,sy]=P(x,y,z);
+  svg.appendChild(el("ellipse",{cx:sx,cy:sy+3,rx:r*1.1,ry:r*.5,fill:"#00000012"}));
+  svg.appendChild(el("circle",{cx:sx,cy:sy-r*.6,r:r,fill:COL.tree,stroke:COL.treeD,"stroke-width":.5}));
+  svg.appendChild(el("circle",{cx:sx-r*.5,cy:sy,r:r*.8,fill:COL.treeD,opacity:.85}));
+}
+function route(pts,z,color){
+  const p=el("polyline",{fill:"none",stroke:color,"stroke-width":2,"stroke-linejoin":"round","stroke-linecap":"round"});
+  p.setAttribute("points",pts.map(([x,y])=>P(x,y,z).join(",")).join(" "));svg.appendChild(p);
+}
+function drop(x,y,zTop){line(P(x,y,zTop),P(x,y,0),{stroke:COL.drop,"stroke-width":.8,"stroke-dasharray":"2 3"});}
+/* depth of a box centre after turntable rotation — for painter's-order sorting */
+function rotDepth(t){const cx=t[0]+t[2]/2-CX, cy=t[1]+t[3]/2-CY;
+  return (cx*Math.cos(ROT)-cy*Math.sin(ROT))+(cx*Math.sin(ROT)+cy*Math.cos(ROT));}
+
+/* ---------- scroll-driven draw ---------- */
+function draw(spread){
+svg.innerHTML="";
+ROT=spread*Math.PI*0.55;                     // turntable: ~100° over the scroll
+/* layer heights scale with `spread` (0 = compact stack, 1 = fully exploded) */
+const f=0.12+spread*1.05;
+const Zg=0, Zp=150*f, Zu=250*f, Zt=430*f, Ztc=Zt-120*f;
+
+/* ================= 0. DROP LINES (drawn first, sit behind) ================= */
+[[2,2],[12,2],[2,12],[12,12],[7,1.5],[1.5,7],[12.5,7],[7,12.5]].forEach(([x,y])=>drop(x,y,Zt+140*f));
+
+/* ================= 1. GROUND / LANDSCAPE ================= */
+// site boundary (dashed, offset beyond the plate)
+(function(){
+  const b=[[-1,2],[2,-1],[12,-1],[15,2],[15,12],[12,15],[2,15],[-1,12]];
+  const p=el("polygon",{fill:"none",stroke:"#9a9a9a","stroke-width":.9,"stroke-dasharray":"4 4"});
+  p.setAttribute("points",b.map(([x,y])=>P(x,y,Zg).join(",")).join(" "));svg.appendChild(p);
+})();
+slab(1,1,12,12,Zg,COL);                          // ground plate
+// courtyard lawn + water
+prism(4.5,4.5,5,4,Zg+0.1,0,{top:COL.greenTop,stroke:COL.treeD,left:COL.greenL,right:COL.greenR});
+poly([P(5.5,5,Zg+.2),P(7.5,5,Zg+.2),P(7.5,7,Zg+.2),P(5.5,7,Zg+.2)],{fill:COL.water,stroke:"#7fbcc4","stroke-width":.6});
+// low buildings around the plot
+prism(1.4,1.4,2.2,1.2,Zg+18,18,COL);
+prism(10,1.4,1.8,1.6,Zg+14,14,COL);
+prism(1.4,9.6,1.6,2.2,Zg+16,16,COL);
+prism(10.2,9.4,1.6,2.4,Zg+20,20,COL);
+prism(7,1.6,1.4,1.2,Zg+12,12,COL);
+// footpaths (teal loop)
+route([[2,3],[6,3],[6,8],[11,8],[11,11],[3,11],[3,4]],Zg+3,COL.route2);
+// trees along the boundary
+[[0.5,3],[0.7,6],[0.9,9],[3,0.6],[6,0.5],[9,0.6],[12.3,3],[12.6,6],[12.8,9],[3,12.5],[6,12.7],[9,12.6],[11.5,12.2]]
+  .forEach(([x,y])=>tree(x,y,Zg));
+
+/* ================= 2. PODIUM PLATE (U-shape ring) ================= */
+// build the U out of three plates, with green roof insets
+slab(2,2,9,2.4,Zp,COL);                 // north wing
+slab(2,2,2.4,9,Zp,COL);                 // west wing
+slab(2,9,9,2,Zp,COL);                   // south wing
+// green roofs on the wings
+prism(2.4,2.3,8,1.4,Zp+2.6,0,{top:COL.greenTop,stroke:COL.treeD});
+prism(2.3,9.3,8,1.1,Zp+2.6,0,{top:COL.greenTop,stroke:COL.treeD});
+// terrace trees + route on the podium
+[[3,3],[5,3],[7,3],[9,3],[3,10],[6,10],[9,10]].forEach(([x,y])=>tree(x,y,Zp+2.6,1.7));
+route([[3,2.6],[10,2.6],[10,4],[3.2,4],[3.2,10],[9.5,10]],Zp+3,COL.route1);
+
+/* ================= 3. UPPER DECK (smaller, offset) ================= */
+slab(5,3,6.5,2.2,Zu,COL);
+slab(9,3,2.2,7,Zu,COL);
+prism(5.2,3.2,6,1.4,Zu+2.6,0,{top:COL.greenTop,stroke:COL.treeD});
+[[6,3.9],[8,3.9],[10,5],[10,8]].forEach(([x,y])=>tree(x,y,Zu+2.6,1.5));
+route([[5.4,3.6],[10,3.6],[10,9]],Zu+3,COL.route1);
+
+/* ================= 4. SLAB TOWERS (exploded on top) ================= */
+// arranged as a broken ring, drawn far -> near (ascending x+y)
+const towers=[
+  [2,1.2,3,1.6, 78],   // NW
+  [8.5,1,3,1.7, 92],   // NE  (gap across the top)
+  [1,5.2,1.7,3, 120],  // W  (tall)
+  [6.2,4,2.4,2.6,150,Ztc], // CENTRE (lower base, tallest)
+  [10.5,5,1.8,3,108],  // E
+  [3,9.5,3,1.7,70],    // S
+].sort((a,b)=>rotDepth(a)-rotDepth(b));
+towers.forEach(t=>{
+  const [x,y,w,d,h,base=Zt]=t;
+  prism(x,y,w,d,base,h,{top:COL.top,left:COL.glassL,right:COL.glassR,stroke:COL.stroke});
+  storeys(x,y,w,d,base,h,Math.round(h/9));
+  // roof gardens on a couple of them
+});
+// green roof on the two low towers
+prism(2.2,1.4,2.6,1.2,Zt+2,0,{top:COL.greenTop,stroke:COL.treeD});
+prism(3.2,9.7,2.6,1.3,Zt+2,0,{top:COL.greenTop,stroke:COL.treeD});
+[[3.2,1.9],[4,1.9],[4,10.2],[5,10.2]].forEach(([x,y])=>tree(x,y,Zt+2,1.4));
+
+/* ================= title ================= */
+const tx=el("text",{x:20,y:26,"font-size":13,"font-weight":700,fill:"#2a2a2a","letter-spacing":.5});
+tx.textContent="MIXED-USE MASSING — EXPLODED AXONOMETRIC";svg.appendChild(tx);
+const tx2=el("text",{x:20,y:42,"font-size":9,fill:"#8a8a8a"});
+tx2.textContent="towers · podium decks · landscape · circulation";svg.appendChild(tx2);
+} /* end draw() */
+
+/* ---------- scroll engine ---------- */
+const scroller=document.getElementById("scroll");
+const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
+const smooth=t=>t*t*(3-2*t);                 // ease-in-out
+let target=0, cur=0;
+function progress(){
+  const total=scroller.offsetHeight-window.innerHeight;
+  return clamp((-scroller.getBoundingClientRect().top)/total);
+}
+function loop(){
+  target=smooth(progress());
+  cur+=(target-cur)*0.12;                     // eased follow for smooth motion
+  if(Math.abs(target-cur)>0.0005) draw(cur);
+  requestAnimationFrame(loop);
+}
+draw(0); requestAnimationFrame(loop);
+</script>
+</body>
+</html>

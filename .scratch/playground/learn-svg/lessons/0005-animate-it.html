@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 5 · Animate it</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+
+<p class="kicker">Rotating SVG · Lesson 5</p>
+<h1>Animate it — the render loop &amp; the glide</h1>
+<p class="soft">The win: make the cube move <em>on its own</em> with
+<code>requestAnimationFrame</code>, and make that motion <b>glide</b> instead of snap —
+the two techniques (easing + lerp-follow) your prototype uses for its buttery feel.</p>
+
+<h2>1. Animation = redraw with a changing number</h2>
+<p>There's no magic. Animation is just: <b>pick a number, change it a little, redraw,
+repeat.</b> You already have <code>draw()</code> from Lesson 4. Wrap it in a loop that
+nudges the angle each frame:</p>
+<pre><code>let angle = 0;
+function loop(){
+  angle += 1;            // change the number
+  draw(angle);           // redraw the scene
+  requestAnimationFrame(loop);   // ask the browser for the next frame
+}
+requestAnimationFrame(loop);</code></pre>
+<p><code>requestAnimationFrame(loop)</code> asks the browser to call <code>loop</code> once,
+right before the next repaint (~60×/sec). Call it again inside the loop and you have a
+render loop. This is the prototype's <code>loop()</code>.</p>
+
+<div class="figure">
+  <svg id="spin" viewBox="-90 -90 180 180" width="220" height="220" xmlns="http://www.w3.org/2000/svg"></svg>
+  <figcaption>rAF loop: angle += 0.5 every frame &nbsp;·&nbsp; <button id="toggle" style="font-family:var(--mono);font-size:.75rem;cursor:pointer">pause</button></figcaption>
+</div>
+
+<div class="warn"><b>WATCH OUT</b> — <code>angle += 1</code> ties speed to frame rate: a
+144Hz screen spins ~2.4× faster than 60Hz. The fix is <b>time-based motion</b> — multiply
+by elapsed time (<code>angle += speed · dt</code>). The prototype dodges this because scroll
+drives it, not the clock — but remember the rule for clock-driven motion.</div>
+
+<h2>2. Easing — motion shouldn't be robotic</h2>
+<p>Linear motion (constant speed) feels mechanical. <b>Easing</b> reshapes a
+<code>0→1</code> progress value so it starts slow, speeds up, ends slow.
+<code>smoothstep</code> is the classic:</p>
+<pre><code>function smoothstep(t){ return t*t*(3 - 2*t); }   // ease-in-out on [0,1]</code></pre>
+<p>Feed your raw progress through it before using it. Same start and end, nicer middle.</p>
+
+<h2>3. The lerp "smooth follow" — the glide</h2>
+<p>This is the trick that makes your prototype feel premium. Instead of jumping straight to
+a target value, each frame you move a <em>fraction</em> of the remaining distance:</p>
+<pre><code>cur += (target - cur) * 0.12;   // 12% of the way there, every frame</code></pre>
+<p>Because the step shrinks as you approach, motion <b>decelerates naturally</b> — a
+critically-damped, spring-like glide. Set a new target and it eases over; the raw input can
+jump, but <code>cur</code> always slides. Your prototype does exactly this with the scroll
+value so the scene doesn't snap frame-to-frame.</p>
+
+<h2>4. Play with the glide</h2>
+<p>Drag <b>target</b> and let go — the cube eases to it, it doesn't jump. The
+<b>follow</b> slider is that <code>0.12</code>: higher = snappier, lower = floatier. Watch
+<code>cur</code> chase <code>target</code>.</p>
+
+<div class="tryit">
+  <div class="out">
+    <div style="display:flex;flex-wrap:wrap;gap:1rem;justify-content:center;font-family:var(--mono);font-size:.72rem;color:#9a9385;margin-bottom:.5rem">
+      <label>target rotation <span id="lt">0</span>°<br><input id="s-target" type="range" min="0" max="360" value="0"></label>
+      <label>follow k <span id="lk">0.12</span><br><input id="s-k" type="range" min="0.02" max="1" step="0.02" value="0.12"></label>
+    </div>
+    <svg id="follow" viewBox="-90 -90 180 180" width="240" height="240"></svg>
+    <div id="ro" style="font-family:var(--mono);font-size:.7rem;color:#9a9385;margin-top:.4rem"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var NS = "http://www.w3.org/2000/svg";
+  var S = 2.0, A0 = S*Math.cos(30*Math.PI/180), B0 = S*Math.sin(30*Math.PI/180);
+  var corners = [[-20,-20,0],[20,-20,0],[20,20,0],[-20,20,0],
+                 [-20,-20,40],[20,-20,40],[20,20,40],[-20,20,40]];
+  var edges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+
+  function project(p, rot){
+    var c=Math.cos(rot), s=Math.sin(rot);
+    var rx=p[0]*c-p[1]*s, ry=p[0]*s+p[1]*c;
+    return [ (rx-ry)*A0, -10 + (rx+ry)*B0 - p[2] ];
+  }
+  function render(svg, rotDeg){
+    var rot=rotDeg*Math.PI/180, cs=corners.map(function(p){return project(p,rot);});
+    var out='<polygon points="'+[cs[0],cs[1],cs[2],cs[3]].map(function(p){return p[0]+','+p[1];}).join(' ')+
+            '" fill="#e0864a22" stroke="#e0864a" stroke-width="0.6"/>';
+    edges.forEach(function(e){ var a=cs[e[0]],b=cs[e[1]];
+      out+='<line x1="'+a[0]+'" y1="'+a[1]+'" x2="'+b[0]+'" y2="'+b[1]+'" stroke="#e8e3d8" stroke-width="1"/>';});
+    svg.innerHTML=out;
+  }
+
+  // Demo 1: continuous auto-spin
+  var spin=document.getElementById('spin'), a=0, running=true;
+  var btn=document.getElementById('toggle');
+  btn.addEventListener('click', function(){ running=!running; btn.textContent=running?'pause':'play';
+    if(running) requestAnimationFrame(loopA); });
+  function loopA(){ if(!running) return; a=(a+0.5)%360; render(spin,a); requestAnimationFrame(loopA); }
+  requestAnimationFrame(loopA);
+
+  // Demo 2: lerp smooth-follow
+  var fsvg=document.getElementById('follow');
+  var target=0, cur=0, k=0.12;
+  document.getElementById('s-target').addEventListener('input', function(){
+    target=+this.value; document.getElementById('lt').textContent=target; });
+  document.getElementById('s-k').addEventListener('input', function(){
+    k=+this.value; document.getElementById('lk').textContent=k.toFixed(2); });
+  function loopB(){
+    cur += (target - cur) * k;                 // <-- the glide
+    render(fsvg, cur);
+    document.getElementById('ro').innerHTML =
+      'cur '+cur.toFixed(1)+'° &nbsp;chasing&nbsp; target '+target+'°';
+    requestAnimationFrame(loopB);
+  }
+  requestAnimationFrame(loopB);
+})();
+</script>
+<p class="soft">Try <code>k = 1.0</code>: the cube snaps instantly (no glide). Try
+<code>k = 0.04</code>: it drifts over lazily. <code>0.12</code> is the prototype's sweet
+spot.</p>
+
+<h2>5. Full circle — you can now read the prototype</h2>
+<p>Scroll-driving is just this with a different number source: instead of a slider setting
+<code>target</code>, the <b>scroll position</b> (normalised to 0→1, passed through
+<code>smoothstep</code>) sets it, and the same lerp-follow smooths it. That's the entire
+animation system in <code>CONCEPTS §4</code>.</p>
+
+<div class="quiz" id="quiz">
+  <div class="q">With <code>cur += (target − cur) * 0.12</code>, why does the motion
+  decelerate as it arrives?</div>
+  <button onclick="ans(this,true)">The remaining distance shrinks, so each step gets smaller</button>
+  <button onclick="ans(this,false)">requestAnimationFrame slows its frame rate near the target</button>
+  <button onclick="ans(this,false)">smoothstep is silently applied to every rAF callback</button>
+  <div class="fb" id="fb"></div>
+</div>
+<script>
+function ans(btn, ok){
+  var fb = document.getElementById('fb');
+  document.querySelectorAll('#quiz button').forEach(function(b){b.disabled=true;});
+  if(ok){ btn.className='correct'; fb.className='fb good';
+    fb.textContent='Right — step = k × (remaining distance). As distance→0, the step→0. That is the natural ease-out.'; }
+  else { btn.className='wrong'; fb.className='fb bad';
+    fb.textContent='Re-read §3: the step is a fraction of the REMAINING distance, which shrinks as you approach.'; }
+}
+</script>
+
+<div class="note"><b>PRIMARY SOURCE</b> — MDN
+<a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame" target="_blank">requestAnimationFrame</a>
+and your <a href="../../prototypes/CONCEPTS-exploded-axonometric.md" target="_blank">CONCEPTS §4</a>
+(<code>smooth()</code>, the lerp, <code>loop()</code>). For easing curves:
+<a href="https://easings.net/" target="_blank">easings.net</a>.</div>
+
+<div class="ask">💬 <b>Ask me anything.</b> Want to wire this cube to actual page <em>scroll</em>
+(sticky runway → 0→1 progress)? Ready for solid faces + the painter's algorithm (L6)?
+Or want to rebuild the whole mini-prototype from scratch as a capstone? Ask.</div>
+
+<div class="nav">
+  <span>← Lesson 4: Isometric projection</span>
+  <span>Next → Lesson 6: Solid faces &amp; the painter's algorithm</span>
+</div>
+
+</body>
+</html>

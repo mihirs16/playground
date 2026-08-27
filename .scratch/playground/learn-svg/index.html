@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rotating SVG · Course index</title>
+<link rel="stylesheet" href="assets/course.css">
+<style>
+  .toc { list-style:none; padding:0; }
+  .toc li { margin:.4rem 0; padding:.9rem 1.1rem; border:1px solid var(--rule);
+            border-left:3px solid var(--accent); border-radius:8px; background:var(--panel); }
+  .toc a { font-weight:600; text-decoration:none; }
+  .toc .d { display:block; color:var(--ink-soft); font-size:.9rem; margin-top:.2rem; }
+  .num { font-family:var(--mono); color:var(--accent); font-size:.8rem; margin-right:.5rem; }
+</style>
+</head>
+<body>
+
+<p class="kicker">A hand-built course</p>
+<h1>Rotating SVG</h1>
+<p class="soft">From drawing a first shape to a scroll-driven exploded axonometric — the
+skills behind <a href="../prototypes/architecture-diagram.html">architecture-diagram.html</a>,
+built up one lesson at a time. Pure SVG + vanilla JS, no libraries.</p>
+
+<ul class="toc">
+  <li><span class="num">01</span><a href="lessons/0001-drawing-with-coordinates.html">Drawing with coordinates</a>
+    <span class="d">Primitives &amp; the grid — why y grows downward.</span></li>
+  <li><span class="num">02</span><a href="lessons/0002-viewbox-and-rotation-ready.html">viewBox &amp; rotation-ready art</a>
+    <span class="d">Re-home the origin, group scenes, rotate about a pivot.</span></li>
+  <li><span class="num">03</span><a href="lessons/0003-rotate-it.html">Rotate it</a>
+    <span class="d">sin/cos refresher &amp; the 2D rotation formula.</span></li>
+  <li><span class="num">04</span><a href="lessons/0004-isometric-projection.html">Isometric projection</a>
+    <span class="d">The <code>P(x,y,z)</code> formula — play with it via sliders.</span></li>
+  <li><span class="num">05</span><a href="lessons/0005-animate-it.html">Animate it</a>
+    <span class="d">rAF loops, smoothstep easing, the lerp glide.</span></li>
+  <li><span class="num">06</span><a href="lessons/0006-solid-faces-painters-algorithm.html">Solid faces &amp; painter's algorithm</a>
+    <span class="d">Fill the cube; reproduce &amp; fix the hollow-box bug.</span></li>
+  <li><span class="num">07</span><a href="lessons/0007-capstone-scroll-driven-scene.html">Capstone — scroll-driven scene</a>
+    <span class="d">Everything at once: rotate + explode on scroll.</span></li>
+</ul>
+
+<h2>Reference</h2>
+<ul class="toc">
+  <li><a href="reference/svg-primitives.html">SVG primitives cheat sheet</a>
+    <span class="d">Quick lookup for elements, paint, transforms, JS node-building.</span></li>
+</ul>
+
+<p class="ask" style="margin-top:2.5rem">💬 These lessons were built by your AI teacher.
+Ask followup questions any time — request a new lesson, a harder exercise, or a whole new
+topic.</p>
+
+</body>
+</html>

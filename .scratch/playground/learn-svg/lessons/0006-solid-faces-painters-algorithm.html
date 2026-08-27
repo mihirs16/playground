@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 6 · Solid faces &amp; the painter's algorithm</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+
+<p class="kicker">Rotating SVG · Lesson 6</p>
+<h1>Solid faces &amp; the painter's algorithm</h1>
+<p class="soft">The win: fill the wireframe cube into a <em>solid</em>, and learn the one rule
+that decides what's in front of what — plus reproduce and fix the "hollow boxes under
+rotation" bug from §2 of your concepts doc.</p>
+
+<h2>1. A solid is just polygons, painted in the right order</h2>
+<p>SVG has no depth buffer — it paints shapes in <b>document order</b>, later ones on top.
+So to fake 3D you sort faces by depth and <b>draw far ones first, near ones last</b>. The
+near faces paint over the far ones. That's the <b>painter's algorithm</b> — like an artist
+laying down background before foreground.</p>
+
+<pre><code>faces
+  .map(f => ({ f, depth: depthAt(centre(f)) }))   // how far back each face sits
+  .sort((a, b) => a.depth - b.depth)               // far → near
+  .forEach(({f}) => drawPolygon(f));               // paint in that order</code></pre>
+
+<p>"Depth" here is just <code>(x + y)</code> from the projection — the same term that pushed
+points "back and down". Bigger <code>x+y</code> = farther away = drawn earlier.</p>
+
+<h2>2. The trap: baking in which faces are visible</h2>
+<p>At a fixed 30° angle, a box only ever shows <b>three</b> faces (top, +x side, +y side).
+The tempting shortcut is to draw <em>only those three</em> and skip the hidden backs — a
+static form of <b>back-face culling</b>. It looks perfect... until you rotate.</p>
+
+<div class="warn"><b>THE BUG</b> — Once the turntable spins past ~90°, the previously-hidden
+back faces swing toward you — but they were <b>never drawn</b>. Result: boxes look
+<b>hollow</b>, like you're seeing through them. The lesson: <b>any visibility shortcut that
+assumes a fixed camera must be recomputed when the view changes.</b> Culling and depth-sort
+are <em>view-dependent</em>.</div>
+
+<h2>3. See it break, then fix it</h2>
+<p>Toggle <b>"cull to 3 faces"</b> ON, then drag rotation past 90° — watch the cube go
+hollow. Turn it OFF (draw all faces, back-to-front) and it stays solid at every angle. The
+fix costs a couple of overpainted hidden faces; correctness is worth it.</p>
+
+<div class="tryit">
+  <div class="out">
+    <div style="display:flex;flex-wrap:wrap;gap:1rem;justify-content:center;align-items:center;font-family:var(--mono);font-size:.72rem;color:#9a9385;margin-bottom:.5rem">
+      <label>rotation <span id="lr">20</span>°<br><input id="s-rot" type="range" min="0" max="360" value="20"></label>
+      <label><input id="cull" type="checkbox"> cull to 3 faces (the bug)</label>
+    </div>
+    <svg id="box" viewBox="-90 -90 180 180" width="260" height="260"></svg>
+    <div id="msg" style="font-size:.72rem;margin-top:.4rem;min-height:1.1em"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var NS="http://www.w3.org/2000/svg";
+  var svg=document.getElementById('box');
+  var S=2.0, A=S*Math.cos(30*Math.PI/180), B=S*Math.sin(30*Math.PI/180), H=42;
+
+  // 8 corners; bottom 0-3, top 4-7
+  var V=[[-22,-22,0],[22,-22,0],[22,22,0],[-22,22,0],
+         [-22,-22,H],[22,-22,H],[22,22,H],[-22,22,H]];
+  // faces as corner-index lists, with a fill shade
+  var FACES=[
+    {n:[4,5,6,7], fill:'#f0d9c4'},   // top   (lightest)
+    {n:[0,1,5,4], fill:'#d79b6a'},   // -y side
+    {n:[1,2,6,5], fill:'#c07f4e'},   // +x side
+    {n:[2,3,7,6], fill:'#a4531f'},   // +y side (darker)
+    {n:[3,0,4,7], fill:'#8a4a24'}    // -x side
+  ];
+
+  function rot2(x,y,r){ var c=Math.cos(r),s=Math.sin(r); return [x*c-y*s, x*s+y*c]; }
+  function proj(p,r){ var q=rot2(p[0],p[1],r); return { pt:[(q[0]-q[1])*A, -12+(q[0]+q[1])*B - p[2]], depth:q[0]+q[1] }; }
+
+  function draw(){
+    var rd=+document.getElementById('s-rot').value;
+    var cull=document.getElementById('cull').checked;
+    document.getElementById('lr').textContent=rd;
+    var r=rd*Math.PI/180;
+    var P=V.map(function(v){return proj(v,r);});
+
+    var faces=FACES.map(function(f){
+      var d=0; f.n.forEach(function(i){d+=P[i].depth;}); d/=f.n.length;   // face centre depth
+      return {f:f, depth:d};
+    }).sort(function(a,b){return a.depth-b.depth;});   // far -> near (painter's algorithm)
+
+    var toDraw = cull ? faces.slice(-3) : faces;       // BUG: keep only 3 nearest, statically
+
+    svg.innerHTML = toDraw.map(function(o){
+      var pts=o.f.n.map(function(i){return P[i].pt[0]+','+P[i].pt[1];}).join(' ');
+      return '<polygon points="'+pts+'" fill="'+o.f.fill+'" stroke="#3a2412" stroke-width="0.8"/>';
+    }).join('');
+
+    var m=document.getElementById('msg');
+    if(cull && (rd>95 && rd<265)){ m.style.color='#e07a6f';
+      m.textContent='⚠ hollow! back faces swung into view but were culled.'; }
+    else if(cull){ m.style.color='#9a9385'; m.textContent='looks fine here — now rotate past 90°…'; }
+    else { m.style.color='#6bbf8a'; m.textContent='✓ solid at every angle (all faces drawn, back-to-front).'; }
+  }
+  document.getElementById('s-rot').addEventListener('input',draw);
+  document.getElementById('cull').addEventListener('change',draw);
+  draw();
+})();
+</script>
+<p class="soft">Flat shading (top lightest, sides progressively darker) fakes light with no
+lighting model — just hand-picked fills, exactly like the prototype's <code>prism()</code>.</p>
+
+<h2>4. Where this hits the wall (SVG vs three.js)</h2>
+<p>Sorting whole faces by their <em>centre</em> depth works for separated boxes and a single
+vertical-axis turntable. It <b>breaks</b> for interpenetrating shapes or free tumbling on a
+second axis — then you need a real per-pixel <b>z-buffer</b> (three.js/WebGL). That's the
+exact boundary your concepts doc draws: single-axis spin is fine in SVG; multi-axis,
+perspective, or lighting → reach for a 3D engine.</p>
+
+<div class="quiz" id="quiz">
+  <div class="q">Why do the boxes go hollow only after rotating past ~90°?</div>
+  <button onclick="ans(this,true)">Hidden back faces swing forward but were never drawn</button>
+  <button onclick="ans(this,false)">The depth sort silently reverses direction past ninety</button>
+  <button onclick="ans(this,false)">Polygons cannot be filled once a group has been rotated</button>
+  <div class="fb" id="fb"></div>
+</div>
+<script>
+function ans(btn, ok){
+  var fb=document.getElementById('fb');
+  document.querySelectorAll('#quiz button').forEach(function(b){b.disabled=true;});
+  if(ok){ btn.className='correct'; fb.className='fb good';
+    fb.textContent='Right — static culling assumed a fixed camera. View-dependent work must be redone every frame.'; }
+  else { btn.className='wrong'; fb.className='fb bad';
+    fb.textContent='Re-read §2: the culled back faces rotate into view but were skipped, leaving holes.'; }
+}
+</script>
+
+<div class="note"><b>PRIMARY SOURCE</b> — Your
+<a href="../../prototypes/CONCEPTS-exploded-axonometric.md" target="_blank">CONCEPTS §2</a>
+(the pitfall is documented there in full) and
+<a href="https://en.wikipedia.org/wiki/Painter%27s_algorithm" target="_blank">Painter's algorithm (Wikipedia)</a>,
+which lists exactly the failure cases a z-buffer solves.</div>
+
+<div class="ask">💬 <b>Ask me anything.</b> Want to add per-frame back-face culling (draw a
+face only if its rotated normal points at you)? Or move on to the capstone — rebuild the
+whole scroll-driven mini-prototype yourself? Ask.</div>
+
+<div class="nav">
+  <span>← Lesson 5: Animate it</span>
+  <span>Next → Lesson 7: Capstone — the scroll-driven scene</span>
+</div>
+
+</body>
+</html>

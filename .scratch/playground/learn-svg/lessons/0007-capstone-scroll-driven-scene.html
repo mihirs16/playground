@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 7 · Capstone — scroll-driven scene</title>
+<link rel="stylesheet" href="../assets/course.css">
+<style>
+  /* capstone-only: the scroll runway + sticky stage from CONCEPTS §4 */
+  #scroll { height: 320vh; position: relative; }
+  #stage {
+    position: sticky; top: 0; height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(circle at 50% 40%, #201d18, #14130f 70%);
+    border-radius: 12px;
+  }
+  #stage svg { width: min(70vmin, 460px); height: auto; }
+  .hint { position: sticky; top: 1rem; font-family: var(--mono); font-size:.72rem;
+          color: var(--ink-soft); text-align:center; }
+</style>
+</head>
+<body>
+
+<p class="kicker">Rotating SVG · Lesson 7 · Capstone</p>
+<h1>Capstone — the scroll-driven scene</h1>
+<p class="soft">Everything at once: three stacked boxes that <b>rotate and explode apart</b> as
+you scroll. Every technique from Lessons 1–6, assembled — this <em>is</em> a miniature of
+your prototype. Read the annotated source, then scroll the stage below.</p>
+
+<h2>The seven ideas, in one file</h2>
+<ol style="font-size:.98rem">
+  <li><b>L1 primitives</b> — faces are <code>&lt;polygon&gt;</code>s.</li>
+  <li><b>L2 pivot</b> — centred viewBox so rotation is clean.</li>
+  <li><b>L3 rotation</b> — <code>rot2()</code> spins x,y before projecting.</li>
+  <li><b>L4 projection</b> — <code>proj()</code> is the iso <code>P(x,y,z)</code>.</li>
+  <li><b>L5 animation</b> — a rAF loop + lerp smooth-follow on the scroll value.</li>
+  <li><b>L6 painter's algo</b> — faces sorted far→near, all drawn.</li>
+  <li><b>the mission</b> — a scroll-driven exploded axonometric, in ~60 lines.</li>
+</ol>
+
+<h2>Scroll the stage ↓</h2>
+<div class="hint">↓ scroll — the stack rotates &amp; explodes ↓</div>
+<div id="scroll">
+  <div id="stage">
+    <svg id="scene" viewBox="-100 -110 200 220"></svg>
+  </div>
+</div>
+
+<script>
+(function(){
+  var NS="http://www.w3.org/2000/svg";
+  var scene=document.getElementById('scene');
+  var S=1.9, A=S*Math.cos(30*Math.PI/180), B=S*Math.sin(30*Math.PI/180);
+
+  // three boxes, each a footprint + base height + thickness, at rising levels
+  var LAYERS=[
+    {w:34, base:0,  h:16, fills:['#f0d9c4','#d79b6a','#c07f4e','#a4531f','#8a4a24']},
+    {w:26, base:26, h:14, fills:['#e7cbb4','#cf9060','#b87747','#9c4e1d','#7f4321']},
+    {w:18, base:50, h:22, fills:['#f2e0cf','#dba070','#c48454','#ad5a24','#8f4c26']}
+  ];
+
+  function rot2(x,y,r){ var c=Math.cos(r),s=Math.sin(r); return [x*c-y*s, x*s+y*c]; }
+  function proj(x,y,z,r){ var q=rot2(x,y,r); return {pt:[(q[0]-q[1])*A,(q[0]+q[1])*B - z], d:q[0]+q[1]}; }
+
+  function box(layer, lift, rot){
+    var w=layer.w, z0=layer.base*(1+lift*2), z1=z0+layer.h;   // lift explodes the stack
+    var c=[[-w,-w,z0],[w,-w,z0],[w,w,z0],[-w,w,z0],[-w,-w,z1],[w,-w,z1],[w,w,z1],[-w,w,z1]];
+    var P=c.map(function(v){return proj(v[0],v[1],v[2],rot);});
+    var F=[[4,5,6,7],[0,1,5,4],[1,2,6,5],[2,3,7,6],[3,0,4,7]];
+    return F.map(function(idx,i){
+      var d=0; idx.forEach(function(j){d+=P[j].d;});
+      return {pts:idx.map(function(j){return P[j].pt;}), fill:layer.fills[i], depth:d/4};
+    });
+  }
+
+  function draw(spread, rot){
+    var faces=[];
+    LAYERS.forEach(function(L,i){ faces=faces.concat(box(L, spread*(i+1)*0.5, rot)); });
+    faces.sort(function(a,b){return a.depth-b.depth;});      // painter's algorithm
+    scene.innerHTML=faces.map(function(f){
+      var p=f.pts.map(function(q){return q[0].toFixed(1)+','+q[1].toFixed(1);}).join(' ');
+      return '<polygon points="'+p+'" fill="'+f.fill+'" stroke="#3a2412" stroke-width="0.7"/>';
+    }).join('');
+  }
+
+  // ---- scroll -> progress -> smoothstep -> lerp follow -> draw (CONCEPTS §4) ----
+  var cur=0, target=0;
+  function smoothstep(t){ return t*t*(3-2*t); }
+  function progress(){
+    var r=document.getElementById('scroll').getBoundingClientRect();
+    var raw=(-r.top)/(r.height - window.innerHeight);       // 0 at top, 1 at bottom
+    return Math.max(0, Math.min(1, raw));
+  }
+  function loop(){
+    target=smoothstep(progress());
+    cur += (target-cur)*0.12;                               // the glide
+    draw(cur, cur*Math.PI*1.4);                             // explode AND rotate as one gesture
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
+
+<h2>You did it</h2>
+<p>That stage above shares its entire vocabulary with
+<a href="../../prototypes/architecture-diagram.html" target="_blank">architecture-diagram.html</a>
+— the real prototype just has more boxes, trees, drop-lines, and storeys. Open it now: you
+should recognise <code>P()</code>, the rotation inside it, <code>prism()</code>, the
+<code>.sort()</code>, <code>smooth()</code>, and <code>loop()</code> as old friends.</p>
+
+<div class="note"><b>YOUR MOVE (wisdom)</b> — The real learning now happens by building.
+Try: (a) add a 4th layer, (b) add dashed <code>drop()</code> lines between levels (L1
+polyline + <code>stroke-dasharray</code>), or (c) change the rotation to go the other way.
+Then share it — post a CodePen to <a href="https://www.reddit.com/r/svg/" target="_blank">r/svg</a>
+or search "isometric SVG" pens to remix. Testing skills in public is where wisdom comes from.</div>
+
+<div class="ask">💬 <b>Ask me anything.</b> Want a guided exercise to add drop-lines or a 4th
+tower? Want to diff your understanding against the real prototype line by line? Or pick a new
+topic entirely — I'm your teacher. Ask.</div>
+
+<div class="nav">
+  <span>← Lesson 6: Solid faces &amp; painter's algorithm</span>
+  <span>Course complete · <a href="../index.html">back to index</a></span>
+</div>
+
+</body>
+</html>

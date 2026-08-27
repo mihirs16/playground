@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reference · SVG primitives</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+
+<p class="kicker">Reference · quick lookup</p>
+<h1>SVG primitives cheat sheet</h1>
+<p class="soft">The elements and attributes the exploded-axonometric prototype is built
+from. Coordinates are in <b>viewBox units</b>, origin top-left, <b>y grows downward</b>.</p>
+
+<h2>Canvas</h2>
+<pre><code>&lt;svg viewBox="minX minY width height"&gt; … &lt;/svg&gt;
+  viewBox   which slice of the grid is shown (units, not px)
+  width/height   the pixel size of the box on the page</code></pre>
+
+<h2>Shapes</h2>
+<pre><code>&lt;rect x y width height rx? /&gt;      box; rx = corner radius
+&lt;circle cx cy r /&gt;                 centre + radius
+&lt;ellipse cx cy rx ry /&gt;            oval
+&lt;line x1 y1 x2 y2 /&gt;               one segment
+&lt;polyline points="x,y x,y …" /&gt;    open multi-point path
+&lt;polygon  points="x,y x,y …" /&gt;    closed shape (auto-joins last→first)</code></pre>
+
+<h2>Paint</h2>
+<pre><code>fill="#rrggbb" | "none"            interior colour
+stroke="#rrggbb"                   outline colour
+stroke-width="n"                   outline thickness (units)
+stroke-dasharray="4 3"             dashed: 4 on, 3 off  → drop-lines, routes
+opacity="0..1"                     whole-element transparency
+fill-opacity / stroke-opacity      paint each separately</code></pre>
+
+<h2>Structure</h2>
+<pre><code>&lt;g&gt; … &lt;/g&gt;                          group; share transforms/styles
+&lt;pattern&gt;                          tileable fill (hatching)
+&lt;text x y&gt;label&lt;/text&gt;             text at a point</code></pre>
+
+<h2>Transforms (Lesson 3+)</h2>
+<pre><code>transform="translate(dx dy)"       move
+transform="rotate(deg cx cy)"      rotate deg° about pivot (cx,cy)
+transform="scale(s)"               grow/shrink about origin
+/* multiple: applied right-to-left */
+transform="translate(50 50) rotate(30)"</code></pre>
+
+<h2>Building nodes in JS</h2>
+<pre><code>// SVG needs the XML namespace — createElement won't work:
+const NS = "http://www.w3.org/2000/svg";
+const el = document.createElementNS(NS, "polygon");
+el.setAttribute("points", "0,0 10,0 5,8");
+el.setAttribute("fill", "#a4531f");
+svg.appendChild(el);</code></pre>
+
+<hr>
+<p class="soft">Related: <a href="../lessons/0001-drawing-with-coordinates.html">Lesson 1 ·
+Drawing with coordinates</a> · Canonical docs:
+<a href="https://developer.mozilla.org/en-US/docs/Web/SVG/Element" target="_blank">MDN SVG
+element reference</a>.</p>
+
+</body>
+</html>

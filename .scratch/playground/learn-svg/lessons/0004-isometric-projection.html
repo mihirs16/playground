@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 4 · Isometric projection</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+
+<p class="kicker">Rotating SVG · Lesson 4</p>
+<h1>Isometric projection — faking 3D with one formula</h1>
+<p class="soft">The win: understand and <em>play with</em> the single function that turns a
+3D point <code>(x,y,z)</code> into a 2D screen point — the core illusion behind your whole
+exploded-axonometric prototype.</p>
+
+<h2>1. The whole trick is one function</h2>
+<p>There is no 3D engine. Depth is faked by mapping every 3D grid point to the screen with:</p>
+<pre><code>screenX = OX + (x − y) · A
+screenY = OY + (x + y) · B − z</code></pre>
+<ul>
+<li><code>x, y</code> = position on the flat ground; <code>z</code> = height.</li>
+<li><code>(x − y)</code> drives <b>horizontal</b> position (things spread left/right).</li>
+<li><code>(x + y)</code> drives how far <b>back &amp; down</b> a point sits.</li>
+<li><b>− z</b> lifts height <em>up</em> the screen (remember Lesson 1: smaller y = higher).</li>
+<li><code>OX, OY</code> just centre the drawing in the view.</li>
+</ul>
+
+<h2>2. Where A and B come from (the viewing angle)</h2>
+<p><code>A</code> and <code>B</code> encode the tilt of your imaginary camera:</p>
+<pre><code>A = S · cos(angle)      B = S · sin(angle)   // classic iso: angle = 30°</code></pre>
+<p><code>S</code> is an overall scale (zoom). At 30° the grid gets that familiar
+technical-drawing look. Change the angle and the ground tilts flatter or steeper — the
+slider below lets you feel it.</p>
+
+<div class="note"><b>KEY IDEA</b> — This is an <b>orthographic / parallel</b> projection:
+parallel lines stay parallel, nothing shrinks with distance, there's <b>no vanishing
+point</b>. That's what makes it read as a blueprint, not a photograph. Adding a
+vanishing point (perspective) would require dividing by depth — a different pipeline.</div>
+
+<h2>3. Play with it</h2>
+<p>A wireframe cube sitting on a ground tile. Drag the sliders and watch the formula's
+inputs change live. <b>Angle</b> tilts the camera; <b>rotation</b> is Lesson 3's turntable
+(applied to x,y <em>before</em> projecting); <b>height</b> stretches z.</p>
+
+<div class="tryit">
+  <div class="out">
+    <div style="display:flex;flex-wrap:wrap;gap:1rem;justify-content:center;font-family:var(--mono);font-size:.72rem;color:#9a9385;margin-bottom:.6rem">
+      <label>angle <span id="la">30</span>°<br><input id="s-ang" type="range" min="5" max="60" value="30"></label>
+      <label>rotation <span id="lr">0</span>°<br><input id="s-rot" type="range" min="0" max="360" value="0"></label>
+      <label>height <span id="lh">30</span><br><input id="s-h" type="range" min="0" max="60" value="30"></label>
+    </div>
+    <svg id="iso" viewBox="-100 -100 200 200" width="300" height="300"></svg>
+    <div id="readout" style="font-family:var(--mono);font-size:.7rem;color:#9a9385;margin-top:.5rem"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var NS = "http://www.w3.org/2000/svg";
+  var svg = document.getElementById('iso');
+  var S = 2.2;                 // zoom
+  var OX = 0, OY = -10;        // centre in view
+
+  // 8 corners of a box on the ground grid. Ground square spans -20..20 in x,y.
+  // z is set per-corner: 0 = ground, H = top.
+  function corners(H){
+    return [
+      [-20,-20,0],[20,-20,0],[20,20,0],[-20,20,0],   // bottom face 0..3
+      [-20,-20,H],[20,-20,H],[20,20,H],[-20,20,H]     // top face    4..7
+    ];
+  }
+  var edges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+
+  // Project one (x,y,z): rotate x,y about centre (0,0) by ROT, then isometric-project.
+  function P(x,y,z, A,B, rot){
+    var c = Math.cos(rot), s = Math.sin(rot);
+    var rx = x*c - y*s;        // Lesson 3 rotation (pivot = ground centre = origin)
+    var ry = x*s + y*c;
+    return [ OX + (rx - ry)*A, OY + (rx + ry)*B - z ];
+  }
+
+  function line(x1,y1,x2,y2,col,w){
+    var el = document.createElementNS(NS,'line');
+    el.setAttribute('x1',x1); el.setAttribute('y1',y1);
+    el.setAttribute('x2',x2); el.setAttribute('y2',y2);
+    el.setAttribute('stroke',col); el.setAttribute('stroke-width',w||1);
+    svg.appendChild(el);
+  }
+
+  function draw(){
+    var deg = +document.getElementById('s-ang').value;
+    var rotDeg = +document.getElementById('s-rot').value;
+    var H = +document.getElementById('s-h').value;
+    document.getElementById('la').textContent = deg;
+    document.getElementById('lr').textContent = rotDeg;
+    document.getElementById('lh').textContent = H;
+
+    var ang = deg*Math.PI/180, rot = rotDeg*Math.PI/180;
+    var A = S*Math.cos(ang), B = S*Math.sin(ang);
+
+    svg.innerHTML = '';
+    // ground tile (a filled parallelogram from the 4 bottom corners)
+    var cs = corners(H).map(function(p){ return P(p[0],p[1],p[2], A,B, rot); });
+    var g = document.createElementNS(NS,'polygon');
+    g.setAttribute('points', [cs[0],cs[1],cs[2],cs[3]].map(function(p){return p[0]+','+p[1];}).join(' '));
+    g.setAttribute('fill','#e0864a22'); g.setAttribute('stroke','#e0864a'); g.setAttribute('stroke-width','0.6');
+    svg.appendChild(g);
+    // cube edges
+    edges.forEach(function(e){
+      var a = cs[e[0]], b = cs[e[1]];
+      line(a[0],a[1],b[0],b[1], '#e8e3d8', 1);
+    });
+    document.getElementById('readout').innerHTML =
+      'A = S·cos('+deg+'°) = '+A.toFixed(2)+' &nbsp; B = S·sin('+deg+'°) = '+B.toFixed(2);
+  }
+  ['s-ang','s-rot','s-h'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', draw);
+  });
+  draw();
+})();
+</script>
+<p class="soft">Notice: this is <b>immediate-mode</b> rendering — every slider move calls
+<code>svg.innerHTML=''</code> and redraws everything from scratch. Your prototype does the
+same thing every animation frame. (Building nodes once and only updating them is
+"retained mode" — a later optimisation.)</p>
+
+<h2>4. What we deliberately left out</h2>
+<p>This is a <em>wireframe</em> — I skipped <b>solid faces</b> on purpose. The moment you
+fill faces, you must decide which face is in front of which: the <b>painter's algorithm</b>
+(draw far→near) and its rotation pitfall. That's a concept worth its own lesson — it's §2
+of your concepts doc, and where the "hollow boxes under rotation" bug lives.</p>
+
+<div class="quiz" id="quiz">
+  <div class="q">In this projection, a point twice as far away is drawn... how?</div>
+  <button onclick="ans(this,true)">Same size — parallel projection has no vanishing point</button>
+  <button onclick="ans(this,false)">Smaller, shrinking with distance like a photograph</button>
+  <button onclick="ans(this,false)">Larger, because more height is added to it</button>
+  <div class="fb" id="fb"></div>
+</div>
+<script>
+function ans(btn, ok){
+  var fb = document.getElementById('fb');
+  document.querySelectorAll('#quiz button').forEach(function(b){b.disabled=true;});
+  if(ok){ btn.className='correct'; fb.className='fb good';
+    fb.textContent='Right — orthographic/parallel: no divide-by-depth, so nothing shrinks. That is the blueprint look.'; }
+  else { btn.className='wrong'; fb.className='fb bad';
+    fb.textContent='Re-read §2 note: iso is parallel — no vanishing point, so distance does not change size.'; }
+}
+</script>
+
+<div class="note"><b>PRIMARY SOURCE</b> — Your own
+<a href="../../prototypes/CONCEPTS-exploded-axonometric.md" target="_blank">CONCEPTS §1</a>
+(the projection formula lives at <code>P(x,y,z)</code> in the prototype). For background:
+<a href="https://en.wikipedia.org/wiki/Isometric_projection" target="_blank">Isometric projection (Wikipedia)</a>
+and <a href="https://en.wikipedia.org/wiki/Axonometric_projection" target="_blank">Axonometric projection</a>.</div>
+
+<div class="ask">💬 <b>Ask me anything.</b> Want the box to have <em>solid shaded faces</em>
+(and to meet the painter's algorithm)? Curious how dimetric/trimetric differ from isometric?
+Want to see perspective side-by-side to feel the difference? Ask — any of these can be the
+next lesson.</div>
+
+<div class="nav">
+  <span>← Lesson 3: Rotate it</span>
+  <span>Next → Lesson 5: Animate it (rAF, easing, scroll)</span>
+</div>
+
+</body>
+</html>

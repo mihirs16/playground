@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 1 · Drawing with coordinates</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+
+<p class="kicker">Rotating SVG · Lesson 1</p>
+<h1>Drawing with coordinates</h1>
+<p class="soft">The win for this lesson: hand-write an SVG that draws a small scene, and
+understand the coordinate system every later trick (rotation, animation) will build on.</p>
+
+<h2>1. An SVG is just a coordinate grid you paint on</h2>
+<p>An <code>&lt;svg&gt;</code> is a box with its own little coordinate system. The
+<code>viewBox="minX minY width height"</code> tells the browser <em>what slice of the
+grid</em> to show. Everything you draw is positioned in those grid units — not pixels.</p>
+
+<p>The one surprise worth burning in now: <b>the Y axis points <em>down</em></b>. The
+origin <code>(0,0)</code> is the <b>top-left</b>. Bigger <code>y</code> = lower on screen.
+(That's exactly why the isometric formula in your prototype writes
+<code>screenY = … − z</code> — it <em>subtracts</em> height to move things <em>up</em>.)</p>
+
+<div class="figure">
+<svg viewBox="0 0 100 100" width="260" height="260" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="100" height="100" fill="#f4f1ea"/>
+  <!-- axes -->
+  <line x1="0" y1="0" x2="100" y2="0" stroke="#a4531f" stroke-width="0.8"/>
+  <line x1="0" y1="0" x2="0" y2="100" stroke="#a4531f" stroke-width="0.8"/>
+  <circle cx="0" cy="0" r="2.5" fill="#a4531f"/>
+  <text x="6" y="9" font-size="7" font-family="monospace">(0,0) origin</text>
+  <text x="70" y="9" font-size="6" font-family="monospace" fill="#a4531f">+x →</text>
+  <text x="3" y="55" font-size="6" font-family="monospace" fill="#a4531f">+y ↓</text>
+  <circle cx="70" cy="60" r="4" fill="#2f6f4f"/>
+  <text x="40" y="75" font-size="6" font-family="monospace">(70,60)</text>
+</svg>
+<figcaption>viewBox="0 0 100 100" · origin top-left · y grows downward</figcaption>
+</div>
+
+<h2>2. The five primitives you'll actually use</h2>
+<p>Your prototype is built almost entirely from these. Learn them once:</p>
+<pre><code>&lt;rect   x y width height /&gt;                 &lt;!-- a box (slab, panel) --&gt;
+&lt;circle cx cy r /&gt;                          &lt;!-- a dot (tree, node) --&gt;
+&lt;line   x1 y1 x2 y2 /&gt;                       &lt;!-- one straight segment --&gt;
+&lt;polyline points="x1,y1 x2,y2 x3,y3" /&gt;     &lt;!-- open path (a route) --&gt;
+&lt;polygon  points="x1,y1 x2,y2 x3,y3" /&gt;     &lt;!-- closed shape (a face) --&gt;</code></pre>
+<p><b>polygon</b> is the star: every box face in the exploded diagram is one polygon —
+three or four corner points, auto-closed, filled flat. Master polygon and you can draw
+any solid.</p>
+
+<p>Two paint attributes appear everywhere: <code>fill</code> (interior colour) and
+<code>stroke</code> / <code>stroke-width</code> (the outline). A face uses both — a fill
+to read as a surface, a thin stroke to read as an edge.</p>
+
+<h2>3. Try it — edit and watch it redraw</h2>
+<p>Change numbers below. Move the polygon points. Break it, fix it. This is the whole
+skill: thinking in grid coordinates.</p>
+
+<div class="tryit">
+<textarea spellcheck="false" oninput="document.getElementById('out1').innerHTML=this.value">
+<svg viewBox="0 0 100 100" width="240" height="240">
+  <rect x="10" y="70" width="80" height="20" fill="#d9cdbb"/>
+  <polygon points="30,70 50,45 70,70" fill="#a4531f" stroke="#5a2d10"/>
+  <circle cx="78" cy="30" r="8" fill="#e8b84b"/>
+  <polyline points="10,90 40,90 55,80 90,80"
+            fill="none" stroke="#2f6f4f" stroke-width="2"
+            stroke-dasharray="4 3"/>
+</svg></textarea>
+<div class="out" id="out1"></div>
+</div>
+<script>
+  var ta = document.querySelector('.tryit textarea');
+  document.getElementById('out1').innerHTML = ta.value;
+</script>
+<p class="soft">That dashed green <code>polyline</code>? Same element the prototype's
+<code>route()</code> and <code>drop()</code> helpers emit. You're already reading the code.</p>
+
+<div class="quiz" id="quiz">
+  <div class="q">In an SVG, you draw a dot at <code>(20, 80)</code> and another at
+  <code>(20, 10)</code>. Which dot appears <em>higher</em> on the screen?</div>
+  <button onclick="ans(this,true)">The dot at (20, 10), because y grows downward</button>
+  <button onclick="ans(this,false)">The dot at (20, 80), because y grows downward</button>
+  <button onclick="ans(this,false)">They sit at the exact same screen height</button>
+  <div class="fb" id="fb"></div>
+</div>
+<script>
+function ans(btn, ok){
+  var fb = document.getElementById('fb');
+  document.querySelectorAll('#quiz button').forEach(function(b){b.disabled=true;});
+  if(ok){ btn.className='correct'; fb.className='fb good';
+    fb.textContent='Right. Smaller y = higher up. This is why height is subtracted, not added.'; }
+  else { btn.className='wrong'; fb.className='fb bad';
+    fb.textContent='Not quite — smaller y is higher. Re-read §1 and try the idea again.'; }
+}
+</script>
+
+<div class="note"><b>PRIMARY SOURCE</b> — Read MDN's
+<a href="https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Basic_shapes" target="_blank">SVG
+Basic Shapes</a> tutorial (10 min). It is the canonical reference for every attribute above.
+Keep the <a href="../reference/svg-primitives.html">primitives cheat sheet</a> open beside it.</p></div>
+
+<div class="ask">💬 <b>I'm your teacher — ask me anything.</b> Stuck on why a shape vanished?
+Curious what <code>path</code> adds over <code>polygon</code>? Want a harder drawing
+challenge before moving on? Just ask.</div>
+
+<div class="nav">
+  <span>Lesson 1 of the arc</span>
+  <span>Next → Lesson 2: the viewBox &amp; making art rotation-ready</span>
+</div>
+
+</body>
+</html>

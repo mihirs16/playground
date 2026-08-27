@@ -1,0 +1,192 @@
+/* course.css — shared styles for the "Rotating SVG" course.
+   Tufte-ish: quiet type, generous margins, printable. */
+
+:root {
+  --ink: #e8e3d8;            /* warm off-white text */
+  --ink-soft: #9a9385;       /* muted secondary text */
+  --paper: #14130f;          /* near-black warm background */
+  --panel: #1e1c17;          /* raised surfaces (figures, boxes) */
+  --rule: #34302a;           /* hairline borders */
+  --accent: #e0864a;         /* warm amber — legible on dark */
+  --accent-soft: #241a12;    /* accent-tinted panel */
+  --good: #6bbf8a;
+  --bad: #e07a6f;
+  --code-bg: #201d18;
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  --serif: Charter, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: var(--serif);
+  color: var(--ink);
+  background: var(--paper);
+  line-height: 1.6;
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 4rem 1.5rem 8rem;
+  font-size: 1.125rem;
+}
+
+.kicker {
+  font-family: var(--mono);
+  font-size: .72rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 .4rem;
+}
+
+h1 { font-size: 2.1rem; line-height: 1.15; margin: 0 0 1.2rem; font-weight: 600; }
+h2 { font-size: 1.4rem; margin: 2.6rem 0 .6rem; font-weight: 600; }
+h3 { font-size: 1.08rem; margin: 1.8rem 0 .4rem; font-weight: 600; }
+
+a { color: var(--accent); text-underline-offset: 2px; }
+
+p, li { color: var(--ink); }
+.soft { color: var(--ink-soft); }
+
+code {
+  font-family: var(--mono);
+  font-size: .85em;
+  background: var(--code-bg);
+  padding: .1em .35em;
+  border-radius: 4px;
+}
+pre {
+  font-family: var(--mono);
+  font-size: .82rem;
+  line-height: 1.5;
+  background: var(--code-bg);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 1rem 1.1rem;
+  overflow-x: auto;
+}
+pre code { background: none; padding: 0; }
+
+blockquote {
+  border-left: 3px solid var(--accent);
+  margin: 1.4rem 0;
+  padding: .2rem 0 .2rem 1.1rem;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+hr { border: none; border-top: 1px solid var(--rule); margin: 2.6rem 0; }
+
+/* Figure: a live SVG demo sitting in the flow of text */
+.figure {
+  margin: 1.6rem 0;
+  padding: 1.2rem;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: #f7f4ee;   /* light drawing canvas — art reads best on paper */
+  text-align: center;
+}
+.figure svg { max-width: 100%; height: auto; }
+.figure figcaption {
+  font-size: .85rem;
+  color: var(--ink-soft);
+  margin-top: .8rem;
+  font-family: var(--mono);
+}
+
+/* Try-it: an editable box */
+.tryit {
+  margin: 1.6rem 0;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.tryit textarea {
+  width: 100%;
+  font-family: var(--mono);
+  font-size: .8rem;
+  line-height: 1.5;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  padding: 1rem;
+  background: var(--code-bg);
+  color: var(--ink);
+  resize: vertical;
+  min-height: 8rem;
+}
+.tryit .out {
+  padding: 1.2rem;
+  background: #f7f4ee;   /* light drawing canvas */
+  text-align: center;
+  min-height: 6rem;
+}
+
+/* Quiz */
+.quiz {
+  margin: 1.6rem 0;
+  padding: 1.2rem 1.3rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  background: var(--accent-soft);
+}
+.quiz .q { font-weight: 600; margin-bottom: .8rem; }
+.quiz button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-family: var(--serif);
+  font-size: 1rem;
+  margin: .4rem 0;
+  padding: .6rem .8rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background .15s;
+}
+.quiz button:hover { background: #2a2620; }
+.quiz button.correct { border-color: var(--good); background: #1c2a22; }
+.quiz button.wrong   { border-color: var(--bad);  background: #2a1d1b; }
+.quiz .fb { margin-top: .7rem; font-size: .95rem; min-height: 1.2em; }
+.quiz .fb.good { color: var(--good); }
+.quiz .fb.bad  { color: var(--bad); }
+
+/* Callouts */
+.note, .warn {
+  margin: 1.4rem 0;
+  padding: .9rem 1.1rem;
+  border-radius: 8px;
+  font-size: .98rem;
+}
+.note { background: #172029; border: 1px solid #26333f; }
+.warn { background: #26190f; border: 1px solid #40301f; }
+.note b, .warn b { font-family: var(--mono); font-size: .8rem; letter-spacing: .05em; }
+
+/* Footer nav */
+.nav {
+  margin-top: 3.5rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: .8rem;
+}
+
+.ask {
+  margin-top: 2.5rem;
+  font-size: .95rem;
+  color: var(--ink-soft);
+  background: var(--accent-soft);
+  border-radius: 8px;
+  padding: .9rem 1.1rem;
+}
+
+@media print {
+  /* Force light for paper: dark ink on white saves toner and reads better */
+  body { max-width: none; font-size: 11pt; background: #fff; color: #1a1a1a; }
+  pre, code { background: #f4f1ea; color: #1a1a1a; }
+  .tryit textarea, .quiz button { display: none; }
+  .nav, .ask { display: none; }
+}

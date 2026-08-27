@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 3 · Rotate it</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+
+<p class="kicker">Rotating SVG · Lesson 3</p>
+<h1>Rotate it — the 2D rotation math</h1>
+<p class="soft">The win: derive the exact formula your prototype uses to spin the building
+(<code>rx = CX + dx·cos − dy·sin</code>), and understand <em>why</em> it computes rotation
+by hand instead of just using <code>rotate()</code>.</p>
+
+<h2>0. A 90-second sin/cos refresher</h2>
+<p>Picture a point on a circle of radius 1, centred at the origin. As you sweep an angle
+<b>θ</b> anticlockwise from the +x axis, that point's coordinates <em>are</em>
+<code>(cos θ, sin θ)</code>. That's the entire definition you need:</p>
+<ul>
+<li><b>cos θ</b> = how far <em>right</em> the point is (the x-coordinate).</li>
+<li><b>sin θ</b> = how far <em>up</em> the point is (the y-coordinate, in normal math axes).</li>
+<li>At θ=0: <code>(1, 0)</code>. At θ=90°: <code>(0, 1)</code>. At 180°: <code>(−1, 0)</code>.</li>
+</ul>
+<p><b>Radians, not degrees.</b> JS's <code>Math.cos/Math.sin</code> take
+<b>radians</b>. A full turn (360°) = <code>2π</code> radians. Convert:
+<code>rad = deg × Math.PI / 180</code>. Burn that one line in — you'll type it constantly.</p>
+
+<div class="figure">
+<svg id="uc" viewBox="-1.3 -1.3 2.6 2.6" width="230" height="230" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="0" cy="0" r="1" fill="none" stroke="#8a8375" stroke-width="0.02"/>
+  <line x1="-1.25" y1="0" x2="1.25" y2="0" stroke="#4a463f" stroke-width="0.015"/>
+  <line x1="0" y1="-1.25" x2="0" y2="1.25" stroke="#4a463f" stroke-width="0.015"/>
+  <line id="uc-r" x1="0" y1="0" x2="1" y2="0" stroke="#e0864a" stroke-width="0.03"/>
+  <line id="uc-cos" x1="0" y1="0" x2="1" y2="0" stroke="#6bbf8a" stroke-width="0.035"/>
+  <line id="uc-sin" x1="1" y1="0" x2="1" y2="0" stroke="#e07a6f" stroke-width="0.035"/>
+  <circle id="uc-p" cx="1" cy="0" r="0.05" fill="#e0864a"/>
+</svg>
+<figcaption><span style="color:#6bbf8a">cos θ →</span> &nbsp;
+<span style="color:#e07a6f">sin θ ↑</span> &nbsp; (drag the slider below)</figcaption>
+</div>
+
+<h2>1. Rotating a point</h2>
+<p>To rotate a point <code>(dx, dy)</code> about the origin by angle θ, the new point is:</p>
+<pre><code>rx = dx·cos θ − dy·sin θ
+ry = dx·sin θ + dy·cos θ</code></pre>
+<p>You don't need to memorise the derivation today — just notice its <b>shape</b>: each new
+coordinate mixes <em>both</em> old coordinates, weighted by cos and sin. Compare it to the
+prototype's turntable code — it's the same formula, just with the site centre added back:</p>
+<pre><code>rx = CX + dx*cos(ROT) - dy*sin(ROT)
+ry = CY + dx*sin(ROT) + dy*cos(ROT)   // dx,dy = point relative to centre</code></pre>
+
+<h2>2. Rotating about a pivot: the translate→rotate→translate dance</h2>
+<p>The formula above spins about <code>(0,0)</code>. To spin about a pivot
+<code>(CX,CY)</code> you do three steps — which is exactly what those two lines encode:</p>
+<ol>
+<li><b>Translate</b> so the pivot becomes the origin: <code>dx = x − CX</code>, <code>dy = y − CY</code>.</li>
+<li><b>Rotate</b> with the formula.</li>
+<li><b>Translate back</b>: add <code>CX</code>, <code>CY</code> to the result.</li>
+</ol>
+<p>This is Lesson 2's pivot idea, now in numbers.</p>
+
+<h2>3. Two ways to rotate in SVG — and why the prototype picks the hard one</h2>
+<p><b>Way A — let SVG do it:</b> <code>&lt;g transform="rotate(deg cx cy)"&gt;</code>.
+Simple. Great when you just want a group to visually spin.</p>
+<p><b>Way B — compute rotated coordinates yourself in JS</b> (the formula above). More work
+— so why bother? Because the prototype needs the <em>rotated (x,y) numbers</em>
+<b>before</b> it feeds them into the isometric projection <code>P(x,y,z)</code>. You can't
+project first and rotate the flat picture after — the depth would be wrong. <b>Rotate in
+model space, then project.</b> That ordering is the whole reason Way B exists here.</p>
+
+<h2>4. Try it — drive the rotation</h2>
+<p>The slider sets θ. Watch the unit circle above <em>and</em> the little house rotate,
+and read the live numbers. This is JS setting one attribute per frame — the seed of
+animation (next lesson).</p>
+
+<div class="tryit">
+  <div class="out">
+    <input id="ang" type="range" min="0" max="360" value="0" style="width:80%">
+    <div style="font-family:var(--mono);font-size:.8rem;margin:.6rem 0;color:#9a9385">
+      θ = <span id="deg">0</span>° = <span id="rad">0.00</span> rad &nbsp;·&nbsp;
+      cos θ = <span id="cos">1.00</span>, sin θ = <span id="sin">0.00</span>
+    </div>
+    <svg viewBox="-60 -60 120 120" width="220" height="220">
+      <circle cx="0" cy="0" r="1.5" fill="#e0864a"/>
+      <g id="house">
+        <rect x="-15" y="0" width="30" height="25" fill="#d9cdbb" stroke="#5a2d10"/>
+        <polygon points="-17,0 0,-15 17,0" fill="#a4531f" stroke="#5a2d10"/>
+      </g>
+    </svg>
+  </div>
+</div>
+<script>
+(function(){
+  var ang = document.getElementById('ang');
+  function upd(){
+    var deg = +ang.value, rad = deg * Math.PI/180;
+    document.getElementById('deg').textContent = deg;
+    document.getElementById('rad').textContent = rad.toFixed(2);
+    document.getElementById('cos').textContent = Math.cos(rad).toFixed(2);
+    document.getElementById('sin').textContent = Math.sin(rad).toFixed(2);
+    // Way A: let SVG rotate the group (pivot = origin, which is the view centre)
+    document.getElementById('house').setAttribute('transform','rotate('+deg+')');
+    // unit-circle viz (note: SVG y is down, so we negate sin to draw "up")
+    var cx=Math.cos(rad), sy=Math.sin(rad);
+    document.getElementById('uc-r').setAttribute('x2',cx);
+    document.getElementById('uc-r').setAttribute('y2',-sy);
+    document.getElementById('uc-p').setAttribute('cx',cx);
+    document.getElementById('uc-p').setAttribute('cy',-sy);
+    document.getElementById('uc-cos').setAttribute('x2',cx);
+    document.getElementById('uc-sin').setAttribute('x1',cx);
+    document.getElementById('uc-sin').setAttribute('y1',0);
+    document.getElementById('uc-sin').setAttribute('x2',cx);
+    document.getElementById('uc-sin').setAttribute('y2',-sy);
+  }
+  ang.addEventListener('input', upd); upd();
+})();
+</script>
+<p class="soft">Because the house is built around <code>(0,0)</code> (thanks to the centred
+viewBox from Lesson 2), a bare <code>rotate(deg)</code> spins it perfectly in place. Lesson
+2 earned us this simplicity.</p>
+
+<div class="quiz" id="quiz">
+  <div class="q">Why does the prototype compute rotated coordinates in JS instead of just
+  wrapping the scene in <code>&lt;g transform="rotate(…)"&gt;</code>?</div>
+  <button onclick="ans(this,true)">It must rotate points before projecting them to 2D iso</button>
+  <button onclick="ans(this,false)">Because SVG rotate only accepts angles given in radians</button>
+  <button onclick="ans(this,false)">Because groups cannot hold more than one polygon shape</button>
+  <div class="fb" id="fb"></div>
+</div>
+<script>
+function ans(btn, ok){
+  var fb = document.getElementById('fb');
+  document.querySelectorAll('#quiz button').forEach(function(b){b.disabled=true;});
+  if(ok){ btn.className='correct'; fb.className='fb good';
+    fb.textContent='Right. Rotate in model space, THEN project — so it needs the rotated numbers first. And the depth-sort must be redone against those rotated positions.'; }
+  else { btn.className='wrong'; fb.className='fb bad';
+    fb.textContent='Re-read §3: the reason is ordering — rotate before projecting; SVG rotate() takes degrees, and groups hold many shapes.'; }
+}
+</script>
+
+<div class="note"><b>PRIMARY SOURCE</b> — MDN
+<a href="https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform#rotate" target="_blank">transform → rotate</a>
+and, for the maths, the
+<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/cos" target="_blank">Math.cos</a>/<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/sin" target="_blank">Math.sin</a>
+pages (they take radians). Cross-ref your <a href="../reference/svg-primitives.html">cheat sheet</a>.</div>
+
+<div class="ask">💬 <b>Ask me anything.</b> Want the full geometric derivation of the rotation
+formula? Curious why we negate sin for the SVG viz? Or want to try coding Way B (manual
+coordinates) by hand before Lesson 4? Ask.</div>
+
+<div class="nav">
+  <span>← Lesson 2: viewBox &amp; rotation-ready</span>
+  <span>Next → Lesson 4: Isometric projection</span>
+</div>
+
+</body>
+</html>

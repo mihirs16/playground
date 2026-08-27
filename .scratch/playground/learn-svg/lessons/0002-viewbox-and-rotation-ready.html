@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 2 · viewBox &amp; rotation-ready art</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+
+<p class="kicker">Rotating SVG · Lesson 2</p>
+<h1>The viewBox &amp; building rotation-ready art</h1>
+<p class="soft">The win: control <em>where</em> the origin sits, group a scene so it moves as
+one, and place your art around a <b>known pivot</b> — the single decision that makes the
+next lesson (rotation) easy instead of maddening.</p>
+
+<h2>1. viewBox = the window onto the grid</h2>
+<p><code>viewBox="minX minY width height"</code> picks which rectangle of the infinite
+coordinate grid is shown, and the browser stretches it to fill the <code>&lt;svg&gt;</code>'s
+pixel size. Two SVGs can draw the <em>same shape</em> and look totally different purely
+because of their viewBox.</p>
+
+<div class="figure">
+<svg viewBox="0 0 100 50" width="440" height="220" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(0,0)">
+    <rect x="0" y="0" width="50" height="50" fill="#faf7f0" stroke="#e5e0d6"/>
+    <text x="4" y="8" font-size="4.5" font-family="monospace">viewBox 0 0 50 50</text>
+    <circle cx="25" cy="25" r="10" fill="#a4531f"/>
+    <text x="16" y="45" font-size="4.5" font-family="monospace">centred</text>
+  </g>
+  <g transform="translate(50,0)">
+    <rect x="0" y="0" width="50" height="50" fill="#faf7f0" stroke="#e5e0d6"/>
+    <text x="4" y="8" font-size="4.5" font-family="monospace">viewBox -25 -25 50 50</text>
+    <circle cx="0" cy="0" r="10" fill="#2f6f4f"/>
+    <text x="2" y="45" font-size="4.5" font-family="monospace">origin at corner</text>
+  </g>
+</svg>
+<figcaption>Same circle. Left: origin top-left, circle at (25,25). Right: origin re-centred by viewBox, circle at (0,0).</figcaption>
+</div>
+
+<div class="note"><b>ROTATION HINT</b> — If your viewBox is
+<code>"-50 -50 100 100"</code>, then <code>(0,0)</code> is the <em>middle</em> of the view.
+Art built around <code>(0,0)</code> can be rotated with a bare <code>rotate(deg)</code> —
+no pivot bookkeeping. That's the trick behind clean spins.</div>
+
+<h2>2. <code>&lt;g&gt;</code> — group a scene so it moves as one</h2>
+<p>A <code>&lt;g&gt;</code> is a container. Anything inside it shares the group's
+<code>transform</code>. Instead of rotating twelve polygons individually, you wrap them in a
+group and rotate the group once. Your prototype's whole massing is conceptually one
+group that gets rotated per frame.</p>
+
+<pre><code>&lt;g transform="rotate(20)"&gt;
+  &lt;polygon … /&gt;   &lt;!-- all of these --&gt;
+  &lt;rect … /&gt;      &lt;!-- rotate together --&gt;
+  &lt;circle … /&gt;    &lt;!-- as one rigid scene --&gt;
+&lt;/g&gt;</code></pre>
+
+<h2>3. Rotation happens <em>about a pivot</em></h2>
+<p>Rotation isn't "spin in place" — it swings every point around <b>one fixed pivot
+point</b>. Points far from the pivot travel on a big circle; the pivot itself never moves.
+So the question that decides everything is: <b>where is your pivot?</b></p>
+
+<p><code>rotate(deg)</code> pivots about the <b>origin (0,0)</b>.
+<code>rotate(deg cx cy)</code> pivots about <code>(cx,cy)</code>. If your art is drawn far
+from the origin and you use plain <code>rotate(deg)</code>, it flings off across the screen
+— the classic "why did my drawing fly away?" bug.</p>
+
+<h2>4. Try it — feel the pivot</h2>
+<p>The house is a <code>&lt;g&gt;</code>. Change the <b>pivot numbers</b> in
+<code>rotate(25 <u>50 40</u>)</code> and watch what the drawing swings around. Try
+<code>rotate(25 0 0)</code> to see it fling from the corner; try the house's own centre.</p>
+
+<div class="tryit">
+<textarea spellcheck="false" oninput="document.getElementById('out2').innerHTML=this.value">
+<svg viewBox="0 0 100 100" width="240" height="240">
+  <!-- pivot marker -->
+  <circle cx="50" cy="40" r="1.6" fill="#a4531f"/>
+  <g transform="rotate(25 50 40)">
+    <rect x="35" y="40" width="30" height="25" fill="#d9cdbb" stroke="#5a2d10"/>
+    <polygon points="33,40 50,25 67,40" fill="#a4531f" stroke="#5a2d10"/>
+    <rect x="46" y="52" width="8" height="13" fill="#5a2d10"/>
+  </g>
+</svg></textarea>
+<div class="out" id="out2"></div>
+</div>
+<script>
+  var ta2 = document.querySelector('.tryit textarea');
+  document.getElementById('out2').innerHTML = ta2.value;
+</script>
+<p class="soft">The orange dot marks the pivot. Notice: when the pivot sits at the house's
+centre, it spins in place; move the pivot away and the whole house orbits it.</p>
+
+<div class="quiz" id="quiz">
+  <div class="q">Your art is drawn around <code>(50,50)</code> but you rotate it with plain
+  <code>rotate(30)</code>. What happens?</div>
+  <button onclick="ans(this,false)">It spins neatly in place around its own middle</button>
+  <button onclick="ans(this,true)">It swings away, orbiting the far-off origin (0,0)</button>
+  <button onclick="ans(this,false)">Nothing — rotate needs an angle in radians here</button>
+  <div class="fb" id="fb"></div>
+</div>
+<script>
+function ans(btn, ok){
+  var fb = document.getElementById('fb');
+  document.querySelectorAll('#quiz button').forEach(function(b){b.disabled=true;});
+  if(ok){ btn.className='correct'; fb.className='fb good';
+    fb.textContent='Exactly. rotate(30) pivots about (0,0). Either pass rotate(30 50 50), or build art around the origin via the viewBox.'; }
+  else { btn.className='wrong'; fb.className='fb bad';
+    fb.textContent='Re-read §3: plain rotate() uses the origin as pivot, so far-off art orbits away.'; }
+}
+</script>
+
+<div class="note"><b>PRIMARY SOURCE</b> — MDN
+<a href="https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/viewBox" target="_blank">viewBox</a>
+and
+<a href="https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform#rotate" target="_blank">transform → rotate</a>.
+Add these two facts to your <a href="../reference/svg-primitives.html">cheat sheet</a> mentally:
+viewBox re-homes the origin; rotate needs a pivot.</div>
+
+<div class="ask">💬 <b>Ask me anything.</b> Want to see the same house rotate three ways
+side-by-side? Confused why the roof polygon didn't need re-centring? Ask before Lesson 3 —
+that's where we make it actually spin with the rotation <em>math</em> (with a sin/cos
+refresher, since you asked for one).</div>
+
+<div class="nav">
+  <span>← Lesson 1: Drawing with coordinates</span>
+  <span>Next → Lesson 3: Rotate it (the 2D rotation math)</span>
+</div>
+
+</body>
+</html>

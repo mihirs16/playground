@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SVG Rotation</title>
+</head>
+<body>
+    <svg
+        id="svg-1"
+        viewBox="0 0 50 50"
+        xmlns="http://www.w3.org/2000/svg"
+        xmlns:xlink="http://www.w3.org/1999/xlink"
+    >
+        <g
+            id="g-1"
+            transform="rotate(45 7.5 7.5)"
+        >
+            <circle cx="5" cy="5" r="0.5" fill="7AE7C7"></circle>
+        </g>
+    </svg>
+    <script>
+        const svg = document.querySelector('#svg-1');
+        const g1 = svg.querySelector('#g-1');
+        let angle = 0;
+
+        g1.addEventListener('click', () => {
+            angle += 45;
+            g1.setAttribute('transform', `rotate(${angle} 7.5 7.5)`);
+        });
+    </script>
+</body>
+</html>
