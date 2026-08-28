@@ -1,0 +1,162 @@
+<!doctype html>
+<html>
+    <head>
+        <title>SVG 3D</title>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    </head>
+    <body style="background-color: black">
+        <div style="color: white; display: flex; align-items: center">
+            <input id="angle-input" type="range" min="0" max="360" value="0" />
+        </div>
+        <svg
+            id="svg-1"
+            width="250"
+            height="250"
+            viewBox="-50 -50 100 100"
+            xmlns="http://www.w3.org/2000/svg"
+        >
+            <g id="base-graph-1">
+                <polyline
+                    points="0 -50 0 50"
+                    stroke-width="0.25"
+                    stroke="white"
+                    opacity="0.5"
+                ></polyline>
+                <polyline
+                    points="-50 0 50 0"
+                    stroke-width="0.25"
+                    stroke="white"
+                    opacity="0.5"
+                ></polyline>
+            </g>
+            <g id="cube-1">
+                <polygon
+                    id="p-1"
+                    points="-20 -20 20 -20 20 20 -20 20"
+                    fill="#D7EBBA"
+                ></polygon>
+                <polygon
+                    id="p-2"
+                    points="-20 -20 20 -20 20 20 -20 20"
+                    fill="none"
+                    stroke="white"
+                    stroke-width="0.5"
+                ></polygon>
+                <polygon
+                    id="p-3"
+                    points="-20 -20 20 -20 20 20 -20 20"
+                    fill="none"
+                    stroke="white"
+                    stroke-width="0.5"
+                ></polygon>
+                <polygon
+                    id="p-4"
+                    points="-20 -20 20 -20 20 20 -20 20"
+                    fill="none"
+                    stroke="white"
+                    stroke-width="0.5"
+                ></polygon>
+                <polygon
+                    id="p-5"
+                    points="-20 -20 20 -20 20 20 -20 20"
+                    fill="none"
+                    stroke="white"
+                    stroke-width="0.5"
+                ></polygon>
+                <polygon
+                    id="p-6"
+                    points="-20 -20 20 -20 20 20 -20 20"
+                    fill="none"
+                    stroke="white"
+                    stroke-width="0.5"
+                ></polygon>
+            </g>
+        </svg>
+        <script>
+            const camera = 30;
+            const zoom = 1;
+            const angleInput = document.querySelector("#angle-input");
+
+            const svg = document.querySelector("#svg-1");
+            const cube1Faces = document.querySelectorAll("#cube-1 > polygon");
+
+            function rotate3dVertical(x, y, z, Cx, Cy, rotation) {
+                const rad = rotation * (Math.PI / 180);
+
+                const rx = Cx + x * Math.cos(rad) - y * Math.sin(rad);
+                const ry = Cy + x * Math.sin(rad) + y * Math.cos(rad);
+
+                return [rx, ry, z];
+            }
+
+            function pointTo2d(x, y, z, Cx, Cy, camera, zoom) {
+                const rads = camera * (Math.PI / 180);
+                const A = zoom * Math.cos(rads);
+                const B = zoom * Math.sin(rads);
+                return [Cx + (x - y) * A, Cy + (x + y) * B - z];
+            }
+
+            function updateCube(cube, rotation, camera, zoom) {
+              return cube.map(face => {
+                const rotatedFace = face.map(point =>  rotate3dVertical(point[0], point[1], point[2], 0, 0, rotation));
+                const projectedFace = rotatedFace.map(point => pointTo2d(point[0], point[1], point[2], 0, 0, camera, zoom));
+                const normalizedFace = projectedFace.map(face => face.join(" "));
+                return normalizedFace;
+              })
+            }
+
+            const cube1 = [
+                [
+                    [-20, -20, 0],
+                    [20, -20, 0],
+                    [20, 20, 0],
+                    [-20, 20, 0],
+                ],
+                [
+                    [-20, -20, 20],
+                    [20, -20, 20],
+                    [20, 20, 20],
+                    [-20, 20, 20],
+                ],
+                [
+                    [-20, -20, 0],
+                    [-20, -20, 20],
+                    [20, -20, 20],
+                    [20, -20, 0],
+                ],
+                [
+                    [-20, 20, 0],
+                    [-20, 20, 20],
+                    [-20, -20, 20],
+                    [-20, -20, 0],
+                ],
+                [
+                    [-20, 20, 0],
+                    [-20, 20, 20],
+                    [20, 20, 20],
+                    [20, 20, 0],
+                ],
+                [
+                    [20, 20, 0],
+                    [20, 20, 20],
+                    [20, -20, 20],
+                    [20, -20, 0],
+                ],
+            ];
+
+            const initCube = updateCube(cube1, angleInput.value, camera, zoom);
+            cube1Faces.forEach((face, faceIdx) =>
+                face.setAttribute("points", initCube[faceIdx]),
+            );
+
+            angleInput.addEventListener("input", (ev) => {
+                const rotation = ev.target.value;
+
+                const initCube = updateCube(cube1, rotation, camera, zoom);
+                cube1Faces.forEach((face, faceIdx) =>
+                    face.setAttribute("points", initCube[faceIdx]),
+                );
+            });
+        </script>
+    </body>
+</html>

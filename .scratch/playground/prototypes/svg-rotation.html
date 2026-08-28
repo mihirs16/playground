@@ -1,31 +1,176 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-    <title>SVG Rotation</title>
-</head>
-<body>
-    <svg
-        id="svg-1"
-        viewBox="0 0 50 50"
-        xmlns="http://www.w3.org/2000/svg"
-        xmlns:xlink="http://www.w3.org/1999/xlink"
-    >
-        <g
-            id="g-1"
-            transform="rotate(45 7.5 7.5)"
+    <head>
+        <title>SVG Rotation</title>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    </head>
+    <body style="background-color: black">
+        <div style="color: white; display: flex; align-items: center">
+            <input type="range" min="0" max="360" value="0" id="angle-input" />
+            θ=<span id="theta">0</span>°=<span id="radians">0</span>; cosθ=<span
+                id="cos-theta"
+                >0</span
+            >; sinθ=<span id="sin-theta">0</span>;
+        </div>
+        <svg
+            id="svg-1"
+            width="250"
+            height="250"
+            viewBox="-50 -50 100 100"
+            xmlns="http://www.w3.org/2000/svg"
         >
-            <circle cx="5" cy="5" r="0.5" fill="7AE7C7"></circle>
-        </g>
-    </svg>
-    <script>
-        const svg = document.querySelector('#svg-1');
-        const g1 = svg.querySelector('#g-1');
-        let angle = 0;
+            <g id="base-graph-1">
+                <circle
+                    cx="0"
+                    cy="0"
+                    r="45"
+                    stroke-width="0.25"
+                    stroke="white"
+                    opacity="0.5"
+                ></circle>
+                <polyline
+                    points="0 -50 0 50"
+                    stroke-width="0.25"
+                    stroke="white"
+                    opacity="0.5"
+                ></polyline>
+                <polyline
+                    points="-50 0 50 0"
+                    stroke-width="0.25"
+                    stroke="white"
+                    opacity="0.5"
+                ></polyline>
+            </g>
+            <g id="g-1">
+                <polyline
+                    id="pl-x"
+                    points="0 0 0 0"
+                    stroke-width="0.5"
+                    stroke="#C8D5B9"
+                    stroke-dasharray="4 1"
+                ></polyline>
+                <polyline
+                    id="pl-y"
+                    points="0 0 0 0"
+                    stroke-width="0.5"
+                    stroke="#C8D5B9"
+                    stroke-dasharray="4 1"
+                ></polyline>
+                <polyline
+                    id="pl-1"
+                    points="0 0 45 0"
+                    stroke-width="0.5"
+                    stroke="#DABFFF"
+                ></polyline>
+                <circle id="c-1" cx="45" cy="0" r="2.5" fill="#D55672"></circle>
+            </g>
 
-        g1.addEventListener('click', () => {
-            angle += 45;
-            g1.setAttribute('transform', `rotate(${angle} 7.5 7.5)`);
-        });
-    </script>
-</body>
+            <g id="base-graph-2">
+                <circle
+                    cx="25"
+                    cy="25"
+                    r="20"
+                    stroke-width="0.25"
+                    stroke="white"
+                    opacity="0.5"
+                ></circle>
+                <polyline
+                    points="25 0 25 50"
+                    stroke-width="0.25"
+                    stroke="white"
+                    opacity="0.5"
+                ></polyline>
+                <polyline
+                    points="0 25 50 25"
+                    stroke-width="0.25"
+                    stroke="white"
+                    opacity="0.5"
+                ></polyline>
+            </g>
+            <g id="g-1">
+                <polyline
+                    id="pl-x2"
+                    points="25 25 45 25"
+                    stroke-width="0.5"
+                    stroke="#C8D5B9"
+                    stroke-dasharray="4 1"
+                ></polyline>
+                <polyline
+                    id="pl-y2"
+                    points="25 25 45 25"
+                    stroke-width="0.5"
+                    stroke="#C8D5B9"
+                    stroke-dasharray="4 1"
+                ></polyline>
+                <polyline
+                    id="pl-2"
+                    points="25 25 45 25"
+                    stroke-width="0.5"
+                    stroke="#DABFFF"
+                ></polyline>
+                <circle
+                    id="c-2"
+                    cx="45"
+                    cy="25"
+                    r="2.5"
+                    fill="#D55672"
+                ></circle>
+            </g>
+        </svg>
+        <script>
+            const angleInput = document.querySelector("#angle-input");
+            const svg = document.querySelector("#svg-1");
+
+            const plx = svg.querySelector("#pl-x");
+            const ply = svg.querySelector("#pl-y");
+            const pl1 = svg.querySelector("#pl-1");
+            const c1 = svg.querySelector("#c-1");
+
+            const plx2 = svg.querySelector("#pl-x2");
+            const ply2 = svg.querySelector("#pl-y2");
+            const pl2 = svg.querySelector("#pl-2");
+            const c2 = svg.querySelector("#c-2");
+
+            const theta = document.querySelector("#theta");
+            const radians = document.querySelector("#radians");
+            const cosTheta = document.querySelector("#cos-theta");
+            const sinTheta = document.querySelector("#sin-theta");
+
+            const dx = c1.getAttribute("cx");
+            const dy = c1.getAttribute("cy");
+
+            const Cx = 25;
+            const Cy = 25;
+            const dx2 = c2.getAttribute("cx") - Cx;
+            const dy2 = c2.getAttribute("cy") - Cy;
+
+            angleInput.addEventListener("input", (ev) => {
+                const angle = +ev.target.value;
+                const rad = angle * (Math.PI / 180);
+
+                const rx = dx * Math.cos(rad) - dy * Math.sin(rad);
+                const ry = dx * Math.sin(rad) + dy * Math.cos(rad);
+
+                const rx2 = Cx + dx2 * Math.cos(rad) - dy2 * Math.sin(rad);
+                const ry2 = Cy + dx2 * Math.sin(rad) + dy2 * Math.cos(rad);
+
+                theta.textContent = angle;
+                radians.textContent = rad;
+                cosTheta.textContent = Math.cos(rad);
+                sinTheta.textContent = Math.sin(rad);
+
+                c1.setAttribute("cx", rx);
+                c1.setAttribute("cy", ry);
+                plx.setAttribute("points", `0 ${ry} ${rx} ${ry}`);
+                ply.setAttribute("points", `${rx} 0 ${rx} ${ry}`);
+                pl1.setAttribute("points", `0 0 ${rx} ${ry}`);
+
+                c2.setAttribute("cx", rx2);
+                c2.setAttribute("cy", ry2);
+                plx2.setAttribute("points", `${Cx} ${ry2} ${rx2} ${ry2}`);
+                ply2.setAttribute("points", `${rx2} ${Cy} ${rx2} ${ry2}`);
+                pl2.setAttribute("points", `${Cx} ${Cy} ${rx2} ${ry2}`);
+            });
+        </script>
+    </body>
 </html>
